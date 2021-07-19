@@ -1,4 +1,5 @@
 # BENCHMARKING SCRIPT FOR GLUON MXNET 2.0
+
 from hashlib import new
 import time
 import mxnet as mx
@@ -336,3 +337,5 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     # print("{}: with_fuse_ms: {:.4f} ms".format("net_with_branches", with_fuse_ms))
 
 benchmark(batch_size=1)
+
+
