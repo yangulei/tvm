@@ -48,6 +48,24 @@ weight_dic = {"a":"O",
               "c":"H",
               "d":"W",}
 
+import time
+import mxnet as mx
+import warnings
+
+# from torch._C import T
+warnings.filterwarnings("ignore")
+from mxnet.gluon.model_zoo.vision import *
+import tvm
+from tvm.relay.op.contrib.dnnl import *
+from tvm import relay
+import tvm.contrib.graph_executor as runtime
+import numpy as np
+from tvm.relay.testing import *
+import os
+from tvm.contrib import utils
+
+model_dict = {'resnet50_v1': resnet}
+
 @tvm.instrument.pass_instrument
 class PrintIR:
     """Print the name of the pass, the IR, only before passes execute."""
@@ -395,10 +413,7 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         sample = np.random.rand(input_shape[0], input_shape[1],input_shape[2], input_shape[3])
         rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
         rt_mod.set_input(**params)
-        for i in range(batches+warmup):
-            if i == warmup:
-                tic = time.time()
-            out = rt_mod.run()
+
         with_fuse_fps = batches * batch_size / (time.time() - tic)
         print("{}: with_fuse_fps: {:.4f} fps".format(network, with_fuse_fps))
 
@@ -443,3 +458,6 @@ if __name__ == "__main__":
     for network in networks:
         benchmark(network, args.batch_size, profiling=args.profiling,check_acc=args.check_acc,\
         warmup=args.warmup, batches=args.batches, dtype=args.dtype, target=args.target)
+
+
+
