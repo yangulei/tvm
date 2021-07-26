@@ -254,3 +254,4 @@ jvm/target
 # logs
 *.txt
 *.xlsx
+*.cover
