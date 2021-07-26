@@ -11,6 +11,8 @@ from tvm.relay.expr import Tuple
 from tvm.relay.op.contrib.arm_compute_lib import conv2d
 from tvm.relay.transform.transform import AlterOpLayout, CanonicalizeCast
 
+from tvm.relay.build_module import GraphExecutor
+
 # from torch._C import T
 warnings.filterwarnings("ignore")
 from mxnet.gluon.model_zoo.vision import *
