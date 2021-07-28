@@ -12,6 +12,7 @@ from tvm.relay.op.contrib.arm_compute_lib import conv2d
 from tvm.relay.transform.transform import AlterOpLayout, CanonicalizeCast
 
 from tvm.relay.build_module import GraphExecutor
+from tvm.relay.transform.transform import AlterOpLayout
 
 # from torch._C import T
 warnings.filterwarnings("ignore")
@@ -322,7 +323,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
         mod["main"] = bind_params_by_name(mod["main"], params)
     with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):#compile the graph x, instruments=[PrintIR()]
         graph, lib, param = tvm.relay.build(seq(mod), target="llvm", params=params)
-    lib = update_lib(lib)
+    # lib = update_lib(lib)
     rt_mod = tvm.contrib.graph_executor.create(graph, lib, tvm.cpu())#Create a runtime executor module given a graph and module.
 
     # print("tvm input{}".format(tvm.nd.array(sample)))
