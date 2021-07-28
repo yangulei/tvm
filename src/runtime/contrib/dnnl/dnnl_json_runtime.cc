@@ -63,6 +63,10 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OHWI32o", tag::Acdb32a},
     {"OHWI16o", tag::Acdb16a},
     {"OHWI8o", tag::Acdb8a},
+    {"NCHW16c", tag::nChw16c}, 
+    {"OIHW16o16i", tag::OIhw16i16o},
+    {"NCHW", tag::nchw},
+    {"OIHW", tag::oihw},
     };
 
   DNNLJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
