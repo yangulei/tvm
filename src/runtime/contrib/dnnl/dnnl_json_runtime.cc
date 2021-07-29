@@ -192,8 +192,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
     std::vector<std::string> outC = node.GetAttr<std::vector<std::string>>("channels");
 
-    dnnl::memory::dim N = input_shape[0],       // batch size
-        IH = input_shape[1],                    // input height
+      dnnl::memory::dim N = input_shape[0],       // batch size
+        IC = input_shape[1]*input_shape[4],                    // input channels
+        IH = input_shape[2],                    // input height
         IW = input_shape[2],                    // input width
         IC = input_shape[3],                    // input channels
         OC = std::stoi(outC[0]),                // output channels
@@ -217,7 +218,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0].substr(0,4)=="OIHW"){
         KH = weight_shape[2];
         KW = weight_shape[3];
-    }
+        }
 
     dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
                       OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
@@ -288,6 +289,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       conv2d_dst_memory = BindDNNLMemory(dst_entry, conv2d_prim_desc.dst_desc());
     }
       BindDNNLMemory(out_entry, conv2d_dst_memory);
+
     // Bind memory buffers.
     if (has_bias){
       net_args_.push_back({{DNNL_ARG_SRC, conv2d_src_memory},
