@@ -336,6 +336,8 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     #     if i == warmup:
     #         tic = time.time()
     #     out = rt_mod.run()
+    # tvm_output = out.get_output(0)
+    print(tvm_output)
     # with_fuse_ms = (time.time() - tic) / (batches) * 1000
     # print("{}: with_fuse_ms: {:.4f} ms".format("net_with_branches", with_fuse_ms))
 
