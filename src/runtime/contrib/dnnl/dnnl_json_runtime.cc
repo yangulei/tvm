@@ -64,9 +64,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OHWI16o", tag::Acdb16a},
     {"OHWI8o", tag::Acdb8a},
     {"NCHW16c", tag::nChw16c}, 
-    {"OIHW16o16i", tag::OIhw16i16o},
+    {"OIHW16o16i", tag::OIhw16o16i},
     {"NCHW", tag::nchw},
     {"OIHW", tag::oihw},
+    {"NCHW8c", tag::nChw8c}, 
+    {"OIHW8o8i", tag::OIhw8o8i},
     };
 
   DNNLJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
@@ -219,8 +221,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
                       OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
-
-    // Memory shapes.
     dnnl::memory::dims src_dims = {N, IC, IH, IW};
     dnnl::memory::dims weights_dims = {OC, IC, KH, KW};
     if (groups > 1) {
