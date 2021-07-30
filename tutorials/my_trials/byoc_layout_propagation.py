@@ -99,6 +99,7 @@ def update_lib(lib):
     lib = tvm.runtime.load_module(lib_path)
     return lib
 
+<<<<<<< HEAD
 
 @relay.transform.function_pass(opt_level=1)
 class CustomPipeline:
@@ -226,6 +227,19 @@ class CustomPipeline:
 class Model(HybridBlock):
     def __init__(self, **kwargs):
         super(Model, self).__init__(**kwargs)
+=======
+class Model(HybridBlock):
+    def __init__(self, **kwargs):
+        super(Model, self).__init__(**kwargs)
+        # use name_scope to give child Blocks appropriate names.
+        # with self.name_scope():
+        self.bn1 = nn.BatchNorm()
+        # self.bn2 = nn.BatchNorm()
+        self.conv0 = nn.Conv2D(64, 3, use_bias=False)# + mx.nd.random.uniform(-1.0, 1.0, shape=(256))
+        self.conv1 = nn.Conv2D(64, 3, use_bias=False)# + mx.nd.random.uniform(-1.0, 1.0, shape=(512))
+        self.conv2 = nn.Conv2D(64, 3, use_bias=False)# + mx.nd.random.uniform(-1.0, 1.0, shape=(512))
+        self.conv3 = nn.Conv2D(64, 3, use_bias=False)
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
         self.relu = nn.Activation('relu')
         self.conv0 = nn.Conv2D(64, 7, use_bias=False, strides=(2, 2), padding=(3,3))
         self.bn0 = nn.BatchNorm()
@@ -249,6 +263,7 @@ class Model(HybridBlock):
 
 
     def hybrid_forward(self, F, x):
+<<<<<<< HEAD
         x = self.relu(self.bn0(self.conv0(x)))
         x_ = self.maxpool(x)
         x = self.relu(self.bn1(self.conv1(x_)))
@@ -274,22 +289,42 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     # img_path = download_testdata(img_url, img_name, module="data")
     # image = Image.open(img_path).resize((224, 224))
     # sample = transform_image(image)
+=======
+        x = self.bn1(x)
+        x = self.conv0(x)
+        x1 = self.relu(self.conv1(x))
+        x2 = self.relu(self.conv2(x))
+        x3 = self.relu(self.conv3(x))
+        return x1+x2+x3
+
+def benchmark(batch_size=1, batches=10, warmup=2, cin=16):
+    
+    mx.random.seed(0)
+    sample = np.ones((batch_size,cin,8,8), np.float32)#mx.nd.random.uniform(-1.0, 1.0, shape=(batch_size,cin,8,8))
+    sample_for_mxnet = mx.ndarray.array(sample)
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
     target = "llvm -model=platinum-8124m -mcpu=skylake-avx512"
     ctx = mx.cpu()
     # print("input:{}".format(sample_for_mxnet))
 
-    input_shape = (batch_size, cin, 224, 224)
+    input_shape = (batch_size, cin, 8, 8)
     
     model = Model()
     mx.random.seed(0)
     model.initialize(ctx=ctx)
+<<<<<<< HEAD
     sample_for_mxnet = mx.ndarray.array(sample)
     output = model(sample_for_mxnet)
     print("mxnet output:{}".format(output))
+=======
+    output = model(sample_for_mxnet)
+    # print("mxnet output:{}".format(output))
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
 
 
     mod, params = relay.frontend.from_mxnet(model, shape={"data": input_shape}, dtype="float32")#port the Gluon model to a portable computational graph
     # print(mod)
+<<<<<<< HEAD
     # desired_layouts = {"nn.conv2d": ["NCHW8c", "OIHW8o8i"], "nn.batch_norm": ["NCHW8c", "OIHW8o8i"]}#, "nn.bias_add": ["NCHW8c", "OIHW8o8i"]}
     seq = tvm.transform.Sequential(
         [
@@ -311,6 +346,14 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
             # tvm.transform.PrintIR(),
             # transform.ConvertLayout(desired_layouts),
             # transform.MergeComposite(pattern_table()),
+=======
+    desired_layouts = {"nn.conv2d": ["NCHW8c", "OIHW8o8i"], "nn.batch_norm": ["NCHW8c", "OIHW8o8i"]}#, "nn.bias_add": ["NCHW8c", "OIHW8o8i"]}
+    seq = tvm.transform.Sequential(
+        [
+            # transform.ConvertLayout(desired_layouts),
+            # transform.AlterOpLayout(),
+            transform.MergeComposite(pattern_table()),
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
             transform.AnnotateTarget("dnnl"),
             transform.MergeCompilerRegions(),
             transform.PartitionGraph(),
@@ -318,24 +361,37 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
             
         ]
     )
+<<<<<<< HEAD
     
     if params:
         mod["main"] = bind_params_by_name(mod["main"], params)
+=======
+
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
     with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):#compile the graph x, instruments=[PrintIR()]
         graph, lib, param = tvm.relay.build(seq(mod), target="llvm", params=params)
-    # lib = update_lib(lib)
+    lib = update_lib(lib)
     rt_mod = tvm.contrib.graph_executor.create(graph, lib, tvm.cpu())#Create a runtime executor module given a graph and module.
 
     # print("tvm input{}".format(tvm.nd.array(sample)))
+<<<<<<< HEAD
     rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")), **param)
     rt_mod.run()
     tvm_output = rt_mod.get_output(0)
     # print(tvm_output.shape)
     print("tvm output:{}".format(tvm_output))
+=======
+    rt_mod.set_input("data", tvm.nd.array(sample), **param)
+    rt_mod.run()
+    tvm_output = rt_mod.get_output(0)
+    # print(tvm_output.shape)
+    # print("tvm output:{}".format(tvm_output))
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
     # for i in range(batches+warmup):
     #     if i == warmup:
     #         tic = time.time()
     #     out = rt_mod.run()
+<<<<<<< HEAD
     # tvm_output = out.get_output(0)
     print(tvm_output)
     # with_fuse_ms = (time.time() - tic) / (batches) * 1000
@@ -343,4 +399,8 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
 
 benchmark(batch_size=1)
 
+=======
+    # with_fuse_ms = (time.time() - tic) / (batches) * 1000
+    # print("{}: with_fuse_ms: {:.4f} ms".format("net_with_branches", with_fuse_ms))
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
 
