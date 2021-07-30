@@ -729,6 +729,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   inline void write_to_dnnl_memory(void* handle, const dnnl::memory& mem, size_t size,
                                    size_t offset = 0) {
     uint8_t* dst = static_cast<uint8_t*>(mem.get_data_handle());
+    // std::cout<<"Read from the handle and write to DNNL memory (+offset)."<<dst<<std::endl;
     std::copy(reinterpret_cast<uint8_t*>(handle), reinterpret_cast<uint8_t*>(handle) + size,
               dst + offset);
   }
