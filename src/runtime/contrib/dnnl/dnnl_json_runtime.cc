@@ -187,12 +187,56 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     std::vector<std::string> str_strides = node.GetAttr<std::vector<std::string>>("strides");
     std::vector<std::string> str_padding = node.GetAttr<std::vector<std::string>>("padding");
     dnnl::memory::dim groups = std::stoi(node.GetAttr<std::vector<std::string>>("groups")[0]);
+<<<<<<< HEAD
     auto src_df = layout_dict[node.GetAttr<std::vector<std::string>>("data_layout")[0]];
     auto weight_df = layout_dict[node.GetAttr<std::vector<std::string>>("kernel_layout")[0]];
     auto dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
     std::vector<std::string> outC = node.GetAttr<std::vector<std::string>>("channels");
 
       dnnl::memory::dim N = input_shape[0],       // batch size
+=======
+    // std::cout<<node.GetAttr<std::vector<std::string>>("data_layout")[0]<<std::endl;
+    // std::cout<<node.GetAttr<std::vector<std::string>>("kernel_layout")[0]<<std::endl;
+    auto src_df = layout_dict[node.GetAttr<std::vector<std::string>>("data_layout")[0]];
+    auto weight_df = layout_dict[node.GetAttr<std::vector<std::string>>("kernel_layout")[0]];
+    auto dst_df = src_df;
+    
+    // for (auto in: input_shape)
+    // {
+    //   std::cout<<in<<' ';
+    // }
+
+    // std::cout<<std::endl;
+
+    // std::cout<<weight_shape.size()<<' '<<std::endl;
+
+    // for (auto in: weight_shape)
+    // {
+    //   std::cout<<in<<' ';
+    // }
+    // std::cout<<std::endl;
+    
+    dnnl::memory::dim N = input_shape[0],       // batch size
+        IC = input_shape[1],                    // input channels
+        IH = input_shape[2],                    // input height
+        IW = input_shape[2],                    // input width
+        OC = weight_shape[0],                   // output channels
+        KH = weight_shape[2],                   // weight height
+        KW = weight_shape[3],                   // weight width
+        PH_L = std::stoi(str_padding[1]),       // height padding: left
+        PH_R = std::stoi(str_padding[3]),       // height padding: right
+        PW_L = std::stoi(str_padding[0]),       // width padding: left
+        PW_R = std::stoi(str_padding[2]),       // width padding: right
+        SH = std::stoi(str_strides[0]),         // height-wise stride
+        SW = std::stoi(str_strides[0]),         // weight-wise stride
+        OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
+        OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
+
+    if(node.GetAttr<std::vector<std::string>>("data_layout")[0]!="NCHW")
+      {
+
+        N = input_shape[0],       // batch size
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
         IC = input_shape[1]*input_shape[4],                    // input channels
         IH = input_shape[2],                    // input height
         IW = input_shape[2],                    // input width
@@ -205,6 +249,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         PW_L = std::stoi(str_padding[1]),       // width padding: left
         PW_R = std::stoi(str_padding[3]),       // width padding: right
         SH = std::stoi(str_strides[0]),         // height-wise stride
+<<<<<<< HEAD
         SW = std::stoi(str_strides[1]);         // weight-wise stride
     
     if (node.GetAttr<std::vector<std::string>>("data_layout")[0].substr(0,4)=="NCHW"){
@@ -219,6 +264,30 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         KH = weight_shape[2];
         KW = weight_shape[3];
         }
+=======
+        SW = std::stoi(str_strides[0]),         // weight-wise stride
+        OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
+        OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
+        // std::cout<<IC<<' '<<IH<<' '<<IW<<' '<<OC<<' '<<KH<<' '<<KW<<' '<<OH<<' '<<OW<<std::endl;
+    }
+// 
+    // std::cout<<"conv "<<IC<<' '<<IH<<' '<<IW<<' '<<OC<<' '<<KH<<' '<<KW<<' '<<OH<<' '<<OW<<std::endl;
+    // // std::cout<<input_shape.size()<<' '<<std::endl;
+    // for (auto in: input_shape)
+    // {
+    //   std::cout<<in<<' ';
+    // }
+
+    // std::cout<<std::endl;
+
+    // std::cout<<weight_shape.size()<<' '<<std::endl;
+
+    // for (auto in: weight_shape)
+    // {
+    //   std::cout<<in<<' ';
+    // }
+    // std::cout<<std::endl;
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
 
     dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
                       OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
@@ -236,8 +305,15 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     // Memory descriptions.
     auto conv_src_md = dnnl::memory::desc(src_dims, dt::f32, src_df);
     auto conv_weights_md = dnnl::memory::desc(weights_dims, dt::f32, weight_df);
+<<<<<<< HEAD
     auto conv_bias_md = dnnl::memory::desc(bias_dims, dt::f32, tag::x);
     auto conv_dst_md = dnnl::memory::desc(dst_dims, dt::f32, dst_df);
+=======
+    auto conv_bias_md = dnnl::memory::desc(bias_dims, dt::f32, tag::any);
+    auto conv_dst_md = dnnl::memory::desc(dst_dims, dt::f32, dst_df);
+
+    // std::cout<<N<<' '<<OC<<' '<<OH<<' '<<OW<<std::endl;
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
 
     // Covn2d description.
     auto conv_desc = dnnl::convolution_forward::desc(
@@ -384,6 +460,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto variance_entry = node.GetInputs()[4];
     dnnl::memory::dims data_shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
     dnnl::memory::dim IC = data_shape[1];
+<<<<<<< HEAD
 
     auto data_format = tag::abcd;
 
@@ -398,6 +475,16 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     }
     
     float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
+=======
+    float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
+    // std::cout<<"batchnorm ";
+    // for(auto in : data_shape)
+    // {
+    //   std::cout<<in<<" ";
+    // }
+    // std::cout<<std::endl;
+    
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
     // Memory description.
     dnnl::memory::desc data_md = dnnl::memory::desc({data_shape, dt::f32, data_format});//GenDNNLMemDescByShape(data_shape, dt::f32);
 
@@ -434,6 +521,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto data_entry = node.GetInputs()[0];
     auto tmp = nodes_[data_entry.id_];
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
+<<<<<<< HEAD
     dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dt::f32);
     if(shape.size()>4)
     {
@@ -448,6 +536,17 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       shape = new_data_shape;
       data_md = dnnl::memory::desc({shape, dt::f32, data_format});
     }
+=======
+
+    // std::cout<<"Relu "; 
+    // for (auto i : shape)
+    // {
+    //   std::cout<<i<<" ";
+    // }
+    // std::cout<<std::endl;
+
+    auto data_md = dnnl::memory::desc{{shape}, dt::f32, tag::any};
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
 
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
@@ -459,8 +558,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     net_.push_back(relu);
 
     auto data_memory = BindDNNLMemory(data_entry, data_md);
+<<<<<<< HEAD
 
     auto out_md = data_md;//dnnl::memory::desc(shape, dt::f32, data_format);
+=======
+    auto out_md = dnnl::memory::desc(shape, dt::f32, tag::any);
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
     JSONGraphNodeEntry out_entry(nid, 0);
     auto out_memory = BindDNNLMemory(out_entry, data_md);
 
@@ -484,8 +587,21 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       data_mds.push_back(data_md);
       data_memories.push_back(BindDNNLMemory(entry, data_md));
 
+<<<<<<< HEAD
     }
     
+=======
+    // std::cout<<"add "; 
+    // for (auto i : data_shape)
+    // {
+    //   std::cout<<i<<" ";
+    // }
+    // std::cout<<std::endl;
+    // // std::cout<<data_dims[0]<<" "<<data_dims[1];
+    }
+    
+    
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
     ICHECK(data_dims[0] == data_dims[1]);
     auto out_md = data_mds[0];
     JSONGraphNodeEntry out_entry(nid, 0);
@@ -725,7 +841,13 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   // Read from DNNL memory (+offset) and write to the handle.
   inline void read_from_dnnl_memory(void* handle, const dnnl::memory& mem, size_t size,
                                     size_t offset = 0) {
+<<<<<<< HEAD
     mem.set_data_handle(handle);
+=======
+    uint8_t* src = static_cast<uint8_t*>(mem.get_data_handle());
+    // std::cout<<"Read from DNNL memory (+offset) and write to the handle."<<*src<<std::endl;
+    std::copy(src + offset, src + offset + size, static_cast<uint8_t*>(handle));
+>>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
   }
 
   // Read from the handle and write to DNNL memory (+offset).
