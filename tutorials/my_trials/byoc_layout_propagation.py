@@ -281,7 +281,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     ctx = mx.cpu()
     # print("input:{}".format(sample_for_mxnet))
 
-    input_shape = (batch_size, cin, 224, 224)
+    input_shape = (batch_size, cin, 8, 8)
     
     model = Model()
     mx.random.seed(0)
