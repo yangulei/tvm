@@ -261,7 +261,7 @@ class Model(HybridBlock):
         x = self.relu(x + x_)
         return x
 
-def benchmark(batch_size=1, batches=10, warmup=2, cin=8):
+def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     
     mx.random.seed(0)
     # sample = sample = np.ones((batch_size, cin, 8, 8))#np.random.rand(batch_size, cin, 8, 8)
