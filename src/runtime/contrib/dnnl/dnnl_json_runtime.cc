@@ -396,10 +396,10 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if(data_shape.size()>4)
     {IC = IC * data_shape[data_shape.size()-1];
     data_shape[1] = IC;
-    dnnl::memory::dims new_data_shape{1,2,3,4};
-    for(int i=0; i<data_shape.size()-1; i++)
-    {new_data_shape[i] = data_shape[i];}
-    data_shape = new_data_shape;
+    // dnnl::memory::dims new_data_shape{1,2,3,4};
+    // for(int i=0; i<data_shape.size()-1; i++)
+    // {new_data_shape[i] = data_shape[i];}
+    // data_shape = new_data_shape;
     }
 
     // std::cout<<IC<<std::endl;
@@ -451,6 +451,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dt::f32);
 
     auto data_md = dnnl::memory::desc{{shape}, dt::f32, tag::any};
+
     JSONGraphNodeEntry out_entry(nid, 0);
     auto out_memory = BindDNNLMemory(out_entry, data_md);
 
