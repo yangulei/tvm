@@ -63,6 +63,7 @@ import numpy as np
 from tvm.relay.testing import *
 import os
 from tvm.contrib import utils
+from tvm.relay.build_module import bind_params_by_name
 
 model_dict = {'resnet50_v1': resnet}
 
