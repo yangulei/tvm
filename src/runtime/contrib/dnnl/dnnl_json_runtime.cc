@@ -69,6 +69,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OIHW", tag::oihw},
     {"NCHW8c", tag::nChw8c}, 
     {"OIHW8o8i", tag::OIhw8o8i},
+    {"OIHW16o", tag::Oihw16o}
     };
 
   DNNLJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
@@ -191,7 +192,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto weight_df = layout_dict[node.GetAttr<std::vector<std::string>>("kernel_layout")[0]];
     auto dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
     std::vector<std::string> outC = node.GetAttr<std::vector<std::string>>("channels");
-
+    
     dnnl::memory::dim N = input_shape[0],       // batch size
         IC = input_shape[1],                    // input channels
         IH = input_shape[2],                    // input height
