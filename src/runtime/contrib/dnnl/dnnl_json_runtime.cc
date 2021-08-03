@@ -441,6 +441,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       data_md = dnnl::memory::desc({shape, dt::f32, data_format});
     }
 
+    // if(shape.size()>4)
+    // {data_md = dnnl::memory::desc{{shape}, dt::f32, tag::nChw16c};}
+
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
 
