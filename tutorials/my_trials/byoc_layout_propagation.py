@@ -281,7 +281,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     ctx = mx.cpu()
     # print("input:{}".format(sample_for_mxnet))
 
-    input_shape = (batch_size, cin, 8, 8)
+    input_shape = (batch_size, cin, 32, 32)
     
     model = Model()
     mx.random.seed(0)
@@ -330,7 +330,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     #     mod["main"] = bind_params_by_name(mod["main"], params)
     with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):#compile the graph x, instruments=[PrintIR()]
         graph, lib, param = tvm.relay.build(seq(mod), target="llvm", params=params)
-    lib = update_lib(lib)
+    # lib = update_lib(lib)
     rt_mod = tvm.contrib.graph_executor.create(graph, lib, tvm.cpu())#Create a runtime executor module given a graph and module.
 
     rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")), **param)
