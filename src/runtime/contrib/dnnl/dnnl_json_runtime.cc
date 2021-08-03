@@ -53,6 +53,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OIHW", tag::oihw},
     {"NCHW8c", tag::nChw8c}, 
     {"OIHW8o8i", tag::OIhw8o8i},
+    {"OIHW16o", tag::Oihw16o}
     };
 
   DNNLJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
@@ -183,6 +184,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto src_df = layout_dict[node.GetAttr<std::vector<std::string>>("data_layout")[0]];
     auto weight_df = layout_dict[node.GetAttr<std::vector<std::string>>("kernel_layout")[0]];
     auto dst_df = src_df;
+
+    if(node.GetAttr<std::vector<std::string>>("kernel_layout")[0]=="OIHW16o")
+    {dst_df = layout_dict["NCHW16c"];}
     
     // for (auto in: input_shape)
     // {
@@ -217,7 +221,10 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     if(node.GetAttr<std::vector<std::string>>("data_layout")[0].size()>4)
       {
+        IC = input_shape[1]*input_shape[4];                    // input channels
+    }
 
+<<<<<<< HEAD
         N = input_shape[0],       // batch size
         IC = input_shape[1]*input_shape[4],                    // input channels
         IH = input_shape[2],                    // input height
@@ -234,6 +241,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
         OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
         // std::cout<<IC<<' '<<IH<<' '<<IW<<' '<<OC<<' '<<KH<<' '<<KW<<' '<<OH<<' '<<OW<<std::endl;
+=======
+    if(node.GetAttr<std::vector<std::string>>("kernel_layout")[0].size()>4)
+      {
+        OC = weight_shape[0]*weight_shape[4];                   // output channels
+>>>>>>> b8df04b0f... enable first layer blocking
     }
 // 
     // std::cout<<"conv "<<IC<<' '<<IH<<' '<<IW<<' '<<OC<<' '<<KH<<' '<<KW<<' '<<OH<<' '<<OW<<std::endl;
@@ -437,13 +449,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
 
     dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dt::f32);
-
-    // std::cout<<"Relu "; 
-    // for (auto i : shape)
-    // {
-    //   std::cout<<i<<" ";
-    // }
-    // std::cout<<std::endl;
 
     auto data_md = dnnl::memory::desc{{shape}, dt::f32, tag::any};
     JSONGraphNodeEntry out_entry(nid, 0);
