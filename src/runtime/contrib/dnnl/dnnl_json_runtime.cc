@@ -438,20 +438,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto data_entry = node.GetInputs()[0];
     auto tmp = nodes_[data_entry.id_];
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
-    dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dt::f32);
-    if(shape.size()>4)
-    {
-      auto data_format = tag::aBcd8b;
-      if(shape[shape.size()-1]==16){
-        data_format = tag::aBcd16b;
-      }
-      shape[1] = shape[1] * shape[shape.size()-1];
-      dnnl::memory::dims new_data_shape{1,2,3,4};
-      for(int i=0; i<new_data_shape.size(); i++)
-      {new_data_shape[i] = shape[i];}
-      shape = new_data_shape;
-      data_md = dnnl::memory::desc({shape, dt::f32, data_format});
-    }
+    auto data_md = dnnl::memory::desc{{shape}, dt::f32, tag::abcd};
 
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
