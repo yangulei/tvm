@@ -62,16 +62,8 @@ def _register_external_op_helper(op_name, supported=True):
 # _register_external_op_helper("nn.batch_norm")
 
 _register_external_op_helper("nn.conv2d")
-<<<<<<< HEAD
 _register_external_op_helper("nn.dense")
 _register_external_op_helper("nn.relu")
-=======
-# _register_external_op_helper("nn.dense")
-# _register_external_op_helper("nn.relu")
-# _register_external_op_helper("add")
-# _register_external_op_helper("subtract")
-# _register_external_op_helper("multiply")
->>>>>>> 44f1464d8... enable bn conv fusion with assign first bn to tvm, has validate the correctness.
 
 #_register_external_op_helper("add")
 #_register_external_op_helper("subtract")
@@ -83,7 +75,7 @@ _register_external_op_helper("concatenate")
 _register_external_op_helper("nn.max_pool2d")
 _register_external_op_helper("nn.avg_pool2d")
 
-def make_pattern(with_bias=True, with_bn=True, with_relu=True):
+def make_pattern(with_bias=True, with_relu=True):
     data = wildcard()
     weight = wildcard()
     bias = wildcard()
