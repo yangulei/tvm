@@ -64,6 +64,10 @@ from tvm.relay.testing import *
 import os
 from tvm.contrib import utils
 from tvm.relay.build_module import bind_params_by_name
+from tvm.contrib.download import download_testdata
+from mxnet.gluon.model_zoo.vision import get_model
+from PIL import Image
+from matplotlib import pyplot as plt
 
 model_dict = {'resnet50_v1': resnet}
 
