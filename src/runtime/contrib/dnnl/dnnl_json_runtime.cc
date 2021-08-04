@@ -450,7 +450,18 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dt::f32);
 
-    auto data_md = dnnl::memory::desc{{shape}, dt::f32, tag::any};
+    auto data_md = dnnl::memory::desc{{shape}, dt::f32, tag::abcd};
+
+    auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
+                                                 dnnl::algorithm::eltwise_relu, data_md, 0);
+    auto relu_prim_desc = dnnl::eltwise_forward::primitive_desc(relu_desc, engine_);
+    ICHECK(data_md == relu_prim_desc.dst_desc());
+
+    auto relu = dnnl::eltwise_forward(relu_prim_desc);
+    net_.push_back(relu);
+
+    auto data_memory = BindDNNLMemory(data_entry, data_md);
+    auto out_md = dnnl::memory::desc(shape, dt::f32, tag::abcd);
 
     JSONGraphNodeEntry out_entry(nid, 0);
     auto out_memory = BindDNNLMemory(out_entry, data_md);
@@ -475,12 +486,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       data_mds.push_back(data_md);
       data_memories.push_back(BindDNNLMemory(entry, data_md));
 
-    std::cout<<"add "; 
-    for (auto i : data_shape)
-    {
-      std::cout<<i<<" ";
-    }
-    std::cout<<std::endl;
+    // std::cout<<"add "; 
+    // for (auto i : data_shape)
+    // {
+    //   std::cout<<i<<" ";
+    // }
+    // std::cout<<std::endl;
     // std::cout<<data_dims[0]<<" "<<data_dims[1];
     }
     
