@@ -246,7 +246,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 >>>>>>> b8df04b0f... enable first layer blocking
     }
 // 
-    std::cout<<"conv "<<IC<<' '<<IH<<' '<<IW<<' '<<OC<<' '<<KH<<' '<<KW<<' '<<OH<<' '<<OW<<std::endl;
+    // std::cout<<"conv "<<IC<<' '<<IH<<' '<<IW<<' '<<OC<<' '<<KH<<' '<<KW<<' '<<OH<<' '<<OW<<std::endl;
     // // std::cout<<input_shape.size()<<' '<<std::endl;
     // for (auto in: input_shape)
     // {
