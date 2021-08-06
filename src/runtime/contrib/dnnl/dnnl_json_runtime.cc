@@ -310,6 +310,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         IC = input_shape[1],               // input channels
         OC = weight_shape[0];              // output channels
 
+    // std::cout<<"dense"<<IC<<" "<<OC<<std::endl;
+
     // Memory shapes.
     dnnl::memory::dims data_dims = {B, IC};
     dnnl::memory::dims weight_dims = {OC, IC};
@@ -441,8 +443,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       data_md = dnnl::memory::desc({shape, dt::f32, data_format});
     }
 
+    auto data_format = tag::abcd;
     // if(shape.size()>4)
-    // {data_md = dnnl::memory::desc{{shape}, dt::f32, tag::nChw16c};}
+    // {data_format = tag::aBcd16b;}
+
+    auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
 
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
