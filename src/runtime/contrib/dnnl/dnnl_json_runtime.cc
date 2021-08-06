@@ -65,11 +65,15 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OHWI8o", tag::Acdb8a},
     {"NCHW16c", tag::nChw16c}, 
     {"OIHW16o16i", tag::OIhw16o16i},
+    {"OIHW16i16o", tag::OIhw16i16o},
+    {"OIHW16o", tag::Oihw16o},
+    {"OHWI16o", tag::Ohwi16o},
     {"NCHW", tag::nchw},
     {"OIHW", tag::oihw},
     {"NCHW8c", tag::nChw8c}, 
     {"OIHW8o8i", tag::OIhw8o8i},
-    {"OIHW16o", tag::Oihw16o}
+    {"OIHW8i8o", tag::OIhw8i8o},
+    {"OHWI8o", tag::Ohwi8o},
     };
 
   DNNLJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
@@ -322,6 +326,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         IC = input_shape[1],               // input channels
         OC = weight_shape[0];              // output channels
 
+    // std::cout<<"dense"<<IC<<" "<<OC<<std::endl;
+
     // Memory shapes.
     dnnl::memory::dims data_dims = {B, IC};
     dnnl::memory::dims weight_dims = {OC, IC};
@@ -438,7 +444,17 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto data_entry = node.GetInputs()[0];
     auto tmp = nodes_[data_entry.id_];
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
-    auto data_md = dnnl::memory::desc{{shape}, dt::f32, tag::abcd};
+    
+    if(shape.size()>4)
+    {auto IC = shape[1] * shape[shape.size()-1];
+    shape[1] = IC;
+    dnnl::memory::dims new_data_shape{1,2,3,4};
+    for(int i=0; i<new_data_shape.size()-1; i++)
+    {new_data_shape[i] = shape[i];}
+    shape = new_data_shape;
+    }
+
+    auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
 
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
