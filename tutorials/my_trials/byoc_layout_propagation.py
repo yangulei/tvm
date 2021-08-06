@@ -62,8 +62,7 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     new_attrs['kernel_layout'] = 'OHWI8o'
     new_attrs['out_layout'] = 'NCHW8c'
     try:
-        # if weight.type_annotation.shape[1]>=16:
-        if weight.data.shape[1]>=16:
+        if weight.type_annotation.shape[1]>=16:
             new_attrs = dict(attrs)
             new_attrs['data_layout'] = 'NCHW8c'
             new_attrs['kernel_layout'] = 'OIHW8i8o'
@@ -324,11 +323,11 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     if params:
         mod["main"] = bind_params_by_name(mod["main"], params)
 
-    if params:
-        mod["main"] = bind_params_by_name(mod["main"], params)
+    # if params:
+    #     mod["main"] = bind_params_by_name(mod["main"], params)
     with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):#compile the graph x, instruments=[PrintIR()]
         graph, lib, param = tvm.relay.build(seq(mod), target="llvm", params=params)
-    # lib = update_lib(lib)
+    lib = update_lib(lib)
     rt_mod = tvm.contrib.graph_executor.create(graph, lib, tvm.cpu())#Create a runtime executor module given a graph and module.
 
     rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")), **param)
