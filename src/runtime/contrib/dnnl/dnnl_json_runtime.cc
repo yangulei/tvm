@@ -444,8 +444,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     }
 
     auto data_format = tag::abcd;
-    // if(shape.size()>4)
-    // {data_format = tag::aBcd16b;}
+    if(shape.size()>4)
+    {data_format = tag::abcde;}
 
     auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
 
