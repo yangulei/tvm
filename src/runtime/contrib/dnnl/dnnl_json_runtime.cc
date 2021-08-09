@@ -226,7 +226,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0].substr(0,4)=="OIHW"){
         KH = weight_shape[2];
         KW = weight_shape[3];
-        }
 
     dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
                       OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
@@ -397,16 +396,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     auto data_format = tag::abcd;
 
-    if(data_shape.size()>4)
-    {IC = IC * data_shape[data_shape.size()-1];
-    data_shape[1] = IC;
-    dnnl::memory::dims new_data_shape{1,2,3,4};
-    for(int i=0; i<data_shape.size()-1; i++)
-    {new_data_shape[i] = data_shape[i];}
-    data_shape = new_data_shape;
-    data_format = tag::aBcd16b;
-    }
-    
     float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
     // Memory description.
     dnnl::memory::desc data_md = dnnl::memory::desc({data_shape, dt::f32, data_format});//GenDNNLMemDescByShape(data_shape, dt::f32);
@@ -446,13 +435,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
     
     if(shape.size()>4)
-    {auto IC = shape[1] * shape[shape.size()-1];
-    shape[1] = IC;
-    dnnl::memory::dims new_data_shape{1,2,3,4};
-    for(int i=0; i<new_data_shape.size()-1; i++)
-    {new_data_shape[i] = shape[i];}
-    shape = new_data_shape;
-    }
+    {auto IC = shape[1] * shape[shape.size()-1];}
 
     auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
 

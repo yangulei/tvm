@@ -5,13 +5,17 @@ import time
 import mxnet as mx
 import warnings
 from tvm._ffi._ctypes.ndarray import TVMPyCapsuleDestructor
+<<<<<<< HEAD
 
 from tvm.relay.build_module import GraphExecutor
 from tvm.relay.expr import Tuple
 from tvm.relay.op.contrib.arm_compute_lib import conv2d
 from tvm.relay.transform.transform import AlterOpLayout, CanonicalizeCast
+=======
+>>>>>>> 0c5a2c743... solve resnet alterlayout precision
 
 from tvm.relay.build_module import GraphExecutor
+from tvm.relay.expr import Tuple
 from tvm.relay.transform.transform import AlterOpLayout
 
 # from torch._C import T
@@ -62,7 +66,7 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     new_attrs['kernel_layout'] = 'OHWI8o'
     new_attrs['out_layout'] = 'NCHW8c'
     try:
-        if weight.type_annotation.shape[1]>=16:
+        if weight.type_annotation.shape[1]>=8:
             new_attrs = dict(attrs)
             new_attrs['data_layout'] = 'NCHW8c'
             new_attrs['kernel_layout'] = 'OIHW8i8o'
@@ -224,12 +228,24 @@ class CustomPipeline:
 class Model(HybridBlock):
     def __init__(self, **kwargs):
         super(Model, self).__init__(**kwargs)
+<<<<<<< HEAD
+=======
+        # use name_scope to give child Blocks appropriate names.
+        # with self.name_scope():
+        # self.bn1 = nn.BatchNorm()
+        # self.bn2 = nn.BatchNorm()
+        # self.conv0 = nn.Conv2D(16, 3, use_bias=True)# + mx.nd.random.uniform(-1.0, 1.0, shape=(256))
+        # self.conv1 = nn.Conv2D(16, 3, use_bias=True)# + mx.nd.random.uniform(-1.0, 1.0, shape=(512))
+        # self.conv2 = nn.Conv2D(16, 3, use_bias=True)# + mx.nd.random.uniform(-1.0, 1.0, shape=(512))
+        # self.conv3 = nn.Conv2D(16, 3, use_bias=True)
+>>>>>>> 0c5a2c743... solve resnet alterlayout precision
         self.relu = nn.Activation('relu')
         self.conv0 = nn.Conv2D(64, 7, use_bias=False, strides=(2, 2), padding=(3,3))
         self.bn0 = nn.BatchNorm()
         self.maxpool = nn.MaxPool2D((3,3), (2,2), (1,1))
         self.conv1 = nn.Conv2D(64, 1, use_bias=True)
         self.bn1 = nn.BatchNorm()
+<<<<<<< HEAD
         self.conv2 = nn.Conv2D(64, 3, use_bias=False, padding=(1, 1))
         self.bn2 = nn.BatchNorm()
         self.conv3 = nn.Conv2D(256, 1, use_bias=True)
@@ -259,6 +275,25 @@ class Model(HybridBlock):
         x = self.bn23(self.conv23(x))
 
         x = self.relu(x + x_)
+=======
+        self.conv2 = nn.Conv2D(64, 3, use_bias=False)
+        self.bn2 = nn.BatchNorm()
+        self.conv3 = nn.Conv2D(256, 1, use_bias=True)
+        self.bn3 = nn.BatchNorm()
+
+    def hybrid_forward(self, F, x):
+        # # x = self.bn1(x)
+        # x = self.relu(self.conv0(x))
+        # x1 = self.relu(self.conv1(x))
+        # x2 = self.relu(self.conv2(x))
+        # x3 = self.bn2(self.conv3(x))
+        # return x1+x2+x3
+        x = self.relu(self.bn0(self.conv0(x)))
+        x = self.maxpool(x)
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.relu(self.bn3(self.conv3(x)))
+>>>>>>> 0c5a2c743... solve resnet alterlayout precision
         return x
 
 def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
@@ -278,7 +313,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     ctx = mx.cpu()
     # print("input:{}".format(sample_for_mxnet))
 
-    input_shape = (batch_size, cin, 8, 8)
+    input_shape = (batch_size, cin, 224, 224)
     
     model = Model()
     mx.random.seed(0)
