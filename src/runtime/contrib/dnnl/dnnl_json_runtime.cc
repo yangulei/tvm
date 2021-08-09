@@ -447,9 +447,17 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if(shape.size()>4)
     {auto IC = shape[1] * shape[shape.size()-1];}
     auto data_format = tag::abcd;
+    std::cout<<"Relu raw "; 
+    for (auto i : shape)
+    {
+      std::cout<<i<<" ";
+    }
+    std::cout<<std::endl;
 
     if(shape.size()>4)
-    {data_format = tag::aBcd16b;}
+    {
+      data_format = tag::aBcd16b;
+    }
 
     auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
 
