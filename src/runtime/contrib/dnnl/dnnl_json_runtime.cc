@@ -187,8 +187,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto weight_df = layout_dict[node.GetAttr<std::vector<std::string>>("kernel_layout")[0]];
     auto dst_df = src_df;
 
-    if(node.GetAttr<std::vector<std::string>>("kernel_layout")[0]=="OHWI8o")
-    {dst_df = layout_dict["NCHW8c"];}
+    if(node.GetAttr<std::vector<std::string>>("kernel_layout")[0]=="OHWI16o")
+    {dst_df = layout_dict["NCHW16c"];}
     
     // for (auto in: input_shape)
     // {
@@ -229,7 +229,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if(node.GetAttr<std::vector<std::string>>("kernel_layout")[0].size()>4)
       {
         OC = weight_shape[0]*weight_shape[weight_shape.size()-1];
-        if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0]=="OHWI8o")
+        if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0]=="OHWI16o")
         {
           OC = weight_shape[0]*weight_shape[weight_shape.size()-1];
           KH = weight_shape[1];
@@ -397,34 +397,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     // }
     // std::cout<<std::endl;
 
-    // std::cout<<"batchnorm raw gamma_entry shape";
-    // for(auto in : nodes_[gamma_entry.id_].GetOpShape()[gamma_entry.index_])
-    // {
-    //   std::cout<<in<<" ";
-    // }
-    // std::cout<<std::endl;
-
-    // std::cout<<"batchnorm raw beta_entry shape";
-    // for(auto in : nodes_[beta_entry.id_].GetOpShape()[beta_entry.index_])
-    // {
-    //   std::cout<<in<<" ";
-    // }
-    // std::cout<<std::endl;
-
-    // std::cout<<"batchnorm raw mean_entry shape";
-    // for(auto in : nodes_[mean_entry.id_].GetOpShape()[mean_entry.index_])
-    // {
-    //   std::cout<<in<<" ";
-    // }
-    // std::cout<<std::endl;
-
-    // std::cout<<"batchnorm raw variance_entry shape";
-    // for(auto in : nodes_[variance_entry.id_].GetOpShape()[variance_entry.index_])
-    // {
-    //   std::cout<<in<<" ";
-    // }
-    // std::cout<<std::endl;
-
     auto data_format = tag::abcd;
 
     if(data_shape.size()>4)
@@ -434,7 +406,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     for(int i=0; i<data_shape.size()-1; i++)
     {new_data_shape[i] = data_shape[i];}
     data_shape = new_data_shape;
-    data_format = tag::aBcd8b;
+    data_format = tag::aBcd16b;
     }
 
     // std::cout<<"BN "<<IC<<std::endl;
@@ -482,38 +454,15 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     auto data_entry = node.GetInputs()[0];
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
-
-<<<<<<< HEAD
-    dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dt::f32);
-=======
-    
-    if(shape.size()>4)
-    {auto IC = shape[1] * shape[shape.size()-1];}
-    // shape[1] = IC;
-    // dnnl::memory::dims new_data_shape{1,2,3,4};
-    // for(int i=0; i<new_data_shape.size()-1; i++)
-    // {new_data_shape[i] = shape[i];}
-    // shape = new_data_shape;
-    // }
-
-    // std::cout<<"Relu "; 
-    // for (auto i : shape)
-    // {
-    //   std::cout<<i<<" ";
-    // }
-    // std::cout<<std::endl;
->>>>>>> 30c13b19f... ensure the conv performance as jit but not correct
+    auto data_format = tag::abcd;
 
 
-<<<<<<< HEAD
-=======
     auto data_format = tag::abcd;
     if(shape.size()>4)
     {data_format = tag::abcde;}
-
+    
     auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
 
->>>>>>> 30c13b19f... ensure the conv performance as jit but not correct
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
     auto relu_prim_desc = dnnl::eltwise_forward::primitive_desc(relu_desc, engine_);
@@ -523,12 +472,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     net_.push_back(relu);
 
     auto data_memory = BindDNNLMemory(data_entry, data_md);
-<<<<<<< HEAD
-    auto out_md = dnnl::memory::desc(shape, dt::f32, tag::abcd);
 
-=======
     auto out_md = dnnl::memory::desc(shape, dt::f32, data_format);
->>>>>>> 30c13b19f... ensure the conv performance as jit but not correct
     JSONGraphNodeEntry out_entry(nid, 0);
     auto out_memory = BindDNNLMemory(out_entry, data_md);
 
