@@ -15,6 +15,7 @@ from tvm.relay.expr import Tuple
 from tvm.relay.transform.transform import AlterOpLayout
 
 from tvm.relay.build_module import GraphExecutor
+from tvm.relay.expr import Tuple
 from tvm.relay.transform.transform import AlterOpLayout
 
 # from torch._C import T
@@ -65,7 +66,7 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     new_attrs['kernel_layout'] = 'OHWI8o'
     new_attrs['out_layout'] = 'NCHW8c'
     try:
-        if weight.type_annotation.shape[1]>=16:
+        if weight.type_annotation.shape[1]>=8:
             new_attrs = dict(attrs)
             new_attrs['data_layout'] = 'NCHW8c'
             new_attrs['kernel_layout'] = 'OIHW8i8o'
@@ -281,7 +282,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     ctx = mx.cpu()
     # print("input:{}".format(sample_for_mxnet))
 
-    input_shape = (batch_size, cin, 8, 8)
+    input_shape = (batch_size, cin, 224, 224)
     
     model = Model()
     mx.random.seed(0)
