@@ -251,25 +251,6 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
 
     res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
     new_attrs = dict(attrs)
-<<<<<<< HEAD
-=======
-    new_attrs['data_layout'] = 'NCHW'
-    new_attrs['kernel_layout'] = 'OIHW'#'OHWI8o'
-    try:
-        if weight.type_annotation.shape[1]>=8:
-            new_attrs = dict(attrs)
-            new_attrs['data_layout'] = 'NCHW8c'
-            new_attrs['kernel_layout'] = 'OIHW8i8o'#'OIHW'
-            return relay.nn.conv2d(data, weight, **new_attrs)
-    except:
-        if weight.data.shape[1]>=8:
-            new_attrs = dict(attrs)
-            new_attrs['data_layout'] = 'NCHW8c'
-            new_attrs['kernel_layout'] = 'OIHW8i8o'#'OIHW'
-            return relay.nn.conv2d(data, weight, **new_attrs)
-        return relay.nn.conv2d(data, weight, **new_attrs)
-    return relay.nn.conv2d(data, weight, **new_attrs)
->>>>>>> 0c5a2c743... solve resnet alterlayout precision
 
     src_df, weight_df, dst_df = res.split(',')
 
@@ -300,23 +281,10 @@ def transform_image(image):
     image = image[np.newaxis, :]
     return image
 
-<<<<<<< HEAD
 def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100, batches=400, dtype="float32", target="llvm"):
-=======
-def benchmark(batch_size=1, batches=10, warmup=2):
-    img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
-    img_name = "cat.png"
-    img_path = download_testdata(img_url, img_name, module="data")
-    image = Image.open(img_path).resize((224, 224))
-    sample = transform_image(image)
-    # print("x", sample.shape)
-    # np.random.seed(0)
-    # sample = np.ones((batch_size, 3, 224, 224))#np.random.rand(batch_size, 3, 224, 224)
-
-    target = "llvm -model=platinum-8124m -mcpu=skylake-avx512"
->>>>>>> 0c5a2c743... solve resnet alterlayout precision
     ctx = tvm.cpu()
     input_shape = (batch_size, 3, 224, 224)
+<<<<<<< HEAD
     if network=="InceptionV3":
         input_shape = (batch_size, 3, 300, 300)
     
@@ -379,6 +347,18 @@ def benchmark(batch_size=1, batches=10, warmup=2):
 =======
         output = block(sample_for_mxnet)
         print("mxnet output:{}".format(output))
+=======
+    for model_name in model_dict.keys():
+        block = mx.gluon.model_zoo.vision.get_resnet(1, 50, pretrained=True)
+        mod, params = relay.frontend.from_mxnet(
+            block, shape={"data": input_shape}, dtype="float32"
+        )
+        # mod, params = model_dict[model_name].get_workload(batch_size=batch_size, dtype="float32")
+        # print(mod)
+        # sample_for_mxnet = mx.ndarray.array(sample)
+        # output = block(sample_for_mxnet)
+        # print("mxnet output:{}".format(output))
+>>>>>>> 71e5ef9cc... enable alter wo first layer for avx-512
         # print(params)
         desired_layouts = {"nn.conv2d": ["NCHW16c", "OIHW16o16i"],"nn.batch_norm": ["NCHW16c", "OIHW16o16i"]}#
         seq = tvm.transform.Sequential(
