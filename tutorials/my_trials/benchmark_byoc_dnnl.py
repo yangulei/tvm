@@ -68,8 +68,8 @@ from tvm.contrib.download import download_testdata
 from mxnet.gluon.model_zoo.vision import get_model
 from PIL import Image
 from matplotlib import pyplot as plt
-import tvm.contrib.graph_executor as graph_executor
-# from tvm.contrib.debugger import debug_executor as graph_executor
+# import tvm.contrib.graph_executor as graph_executor
+from tvm.contrib.debugger import debug_executor as graph_executor
 
 model_dict = {'resnet50_v1': resnet}
 
@@ -284,7 +284,6 @@ def transform_image(image):
 def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100, batches=400, dtype="float32", target="llvm"):
     ctx = tvm.cpu()
     input_shape = (batch_size, 3, 224, 224)
-<<<<<<< HEAD
     if network=="InceptionV3":
         input_shape = (batch_size, 3, 300, 300)
     
@@ -342,69 +341,10 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         rt_mod.set_input(**params)
         out = rt_mod.run()
         sample_for_mxnet = mx.ndarray.array(sample)
-<<<<<<< HEAD
         mxnet_output = block(sample_for_mxnet)
-=======
-        output = block(sample_for_mxnet)
-        print("mxnet output:{}".format(output))
-=======
-    for model_name in model_dict.keys():
-        block = mx.gluon.model_zoo.vision.get_resnet(1, 50, pretrained=True)
-        mod, params = relay.frontend.from_mxnet(
-            block, shape={"data": input_shape}, dtype="float32"
-        )
-        # mod, params = model_dict[model_name].get_workload(batch_size=batch_size, dtype="float32")
-        # print(mod)
-        # sample_for_mxnet = mx.ndarray.array(sample)
-        # output = block(sample_for_mxnet)
-        # print("mxnet output:{}".format(output))
->>>>>>> 71e5ef9cc... enable alter wo first layer for avx-512
-        # print(params)
-        desired_layouts = {"nn.conv2d": ["NCHW16c", "OIHW16o16i"],"nn.batch_norm": ["NCHW16c", "OIHW16o16i"]}#
-        seq = tvm.transform.Sequential(
-            [
-                # relay.transform.CanonicalizeOps(),
-                # relay.transform.SimplifyInference(),
-                # relay.transform.FoldScaleAxis(),
-                # relay.transform.SimplifyExpr(),
-                # relay.transform.FuseOps(),
-                # tvm.transform.PrintIR(),
-                relay.transform.AlterOpLayout(),
-                # tvm.transform.PrintIR(),
-                # relay.transform.ConvertLayout(desired_layouts),
-                relay.transform.MergeComposite(pattern_table()),
-                relay.transform.AnnotateTarget("dnnl"),
-                relay.transform.MergeCompilerRegions(),
-                relay.transform.PartitionGraph(),
-                # tvm.transform.PrintIR(),
-            ]
-        )
-
-
-        # if params:
-        #     mod["main"] = bind_params_by_name(mod["main"], params)
-        with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):# 
-            json, lib, params = relay.build(seq(mod), "llvm", params=params)
-        lib = update_lib(lib)
-        # print(json)
-        rt_mod = graph_executor.create(json, lib, ctx)#, dump_root="/home/zy/tvm/tutorials/experiment_res/")#Create a runtime executor module given a graph and module.
-        
         rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
         rt_mod.set_input(**params)
         rt_mod.run()
-
-        # out= rt_mod.debug_get_output("tvmgen_default_dnnl_0", out=tvm.nd.empty((1, 64, 112, 112), dtype="float32"))
-        # print(out)
-        # tvm_out = rt_mod.get_output(1, tvm.nd.empty((1, 1000), "float32")).numpy()
-        # print(tvm_out)
-        # for i in range(batches+warmup):
-        #     if i == warmup:
-        #         tic = time.time()
-        #     out = rt_mod.run()
-        #     # out.wait_to_read()
-        # with_fuse_fps = batches * batch_size / (time.time() - tic)
-        # print("{}: with_fuse_ms: {:.4f} ms".format(model_name, with_fuse_fps))
->>>>>>> 0c5a2c743... solve resnet alterlayout precision
         tvm_output = rt_mod.get_output(0)
         # print("mxnet_output:{}".format(mxnet_output))
         # print("tvm_output:{}".format(tvm_output))
