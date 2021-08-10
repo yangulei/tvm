@@ -388,7 +388,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     for(int i=0; i<data_shape.size()-1; i++)
     {new_data_shape[i] = data_shape[i];}
     data_shape = new_data_shape;
-    data_format = tag::aBcd16b;
+    data_format = tag::aBcd8b;
     }
     
     float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
