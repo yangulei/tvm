@@ -70,7 +70,6 @@ from PIL import Image
 from matplotlib import pyplot as plt
 # import tvm.contrib.graph_executor as graph_executor
 from tvm.contrib.debugger import debug_executor as graph_executor
-
 model_dict = {'resnet50_v1': resnet}
 
 @tvm.instrument.pass_instrument
