@@ -310,6 +310,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         IC = input_shape[1],               // input channels
         OC = weight_shape[0];              // output channels
 
+    
     // std::cout<<"dense"<<IC<<" "<<OC<<std::endl;
 
     // Memory shapes.
