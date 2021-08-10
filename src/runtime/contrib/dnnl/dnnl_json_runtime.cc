@@ -403,7 +403,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     for(int i=0; i<data_shape.size()-1; i++)
     {new_data_shape[i] = data_shape[i];}
     data_shape = new_data_shape;
-    data_format = tag::aBcd16b;
+    data_format = tag::aBcd8b;
     }
 
     float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
@@ -447,12 +447,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if(shape.size()>4)
     {auto IC = shape[1] * shape[shape.size()-1];}
     auto data_format = tag::abcd;
-    std::cout<<"Relu raw "; 
-    for (auto i : shape)
-    {
-      std::cout<<i<<" ";
-    }
-    std::cout<<std::endl;
+    // std::cout<<"Relu raw "; 
+    // for (auto i : shape)
+    // {
+    //   std::cout<<i<<" ";
+    // }
+    // std::cout<<std::endl;
 
     if(shape.size()>4)
     {
