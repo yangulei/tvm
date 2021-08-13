@@ -254,7 +254,6 @@ jvm/target
 # logs
 *.txt
 *.xlsx
-<<<<<<< HEAD
 *.cover
 txt2excel_profile.py
 txt2excel.py
@@ -265,6 +264,3 @@ benchmark_onednn.py
 benchmark_byoc_raw.py
 byoc_layout_propagation.py
 
-=======
-*.cover
->>>>>>> fef624106... clean_layout_propagation
