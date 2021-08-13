@@ -531,9 +531,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     for (auto entry : node.GetInputs()) {
       auto data_shape = nodes_[entry.id_].GetOpShape()[entry.index_];
       dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
-        data_mds.push_back(data_md);
-        data_memories.push_back(BindDNNLMemory(entry, data_md));
-      }
+      data_mds.push_back(data_md);
+      data_memories.push_back(BindDNNLMemory(entry, data_md));
+    }
     
     auto concat_prim_desc = dnnl::concat::primitive_desc(axis, data_mds, engine_);
     auto concat = dnnl::concat(concat_prim_desc);
@@ -580,7 +580,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       SW = std::stoi(str_strides[1]),
       DH = dilation0,
       DW = dilation1;
-      
 
     if(node.GetAttr<std::vector<std::string>>("layout")[0].size()>4)
       {
@@ -618,10 +617,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_src_md, pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
-
     auto maxpool_prim_desc = dnnl::pooling_forward::primitive_desc(maxpool_desc, engine_);
 
-    // Push to the network.D detached at 0b2baca1e
     auto pool = dnnl::pooling_forward(maxpool_prim_desc);
     net_.push_back(pool);
 
@@ -654,14 +651,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dim dilation1 = std::stoi(node.GetAttr<std::vector<std::string>>("dilation")[1]);
     auto src_df = layout_dict[node.GetAttr<std::vector<std::string>>("layout")[0]];
     auto dst_df = src_df;
-
-    // Attributes related to AvgPool
     int int_countpad = std::stoi(node.GetAttr<std::vector<std::string>>("count_include_pad")[0]); //notice
     bool count_include_pad = int_countpad != 0 ? true : false;
     auto alg_kind = count_include_pad ?
       dnnl::algorithm::pooling_avg_include_padding :
       dnnl::algorithm::pooling_avg_exclude_padding ;
-      
     dnnl::memory::dim N = input_shape[0],
       IC = input_shape[1],
       IH = input_shape[2],
@@ -712,7 +706,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
-
     auto avgpool_prim_desc = dnnl::pooling_forward::primitive_desc(avgpool_desc, engine_, true);//allow_enpty=true
 
     // Push to the network.
