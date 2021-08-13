@@ -80,16 +80,11 @@ class PrintIR:
         print("Running pass: {}", info)
         print(mod)
 
-<<<<<<< HEAD
 @relay.transform.function_pass(opt_level=1)
-=======
-@relay.transform.function_pass(opt_level=3)
->>>>>>> 47287e252... add a new pass (work for three-layer conv)
 class CustomPipeline:
     """Simple test function to replace one argument to another."""
 
     def __init__(self):
-<<<<<<< HEAD
         self.cnt = 0
         self.net_dict = {}
         self.branch_post_op_dict = {} # dict for querying the post ops of the key node
@@ -205,84 +200,10 @@ class CustomPipeline:
 
     def check_consecutive_add(self, node):
         try:
-=======
-        # self.multiplier = multiplier
-        self.cnt = 0
-        self.merge_dict = {}
-        self.op_lst = []
-
-    # This function can define a pass.
-    def transform_function(self, func, mod, ctx):
-        # obj = self
-        class ReplaceConstant(tvm.relay.ExprMutator):
-            # def rewrite(self, func):
-            #     node = self.visit_call(func)
-            #     self.merge_consecutive_add(node.body)
-            #     res = self.rewrite_graph()
-            #     res = relay.Function([obj.op_lst[-1]], res)
-            #     return res
-
-            def visit_call(self, c):
-                # self.merge_consecutive_add(c)
-                # res = self.rewrite_graph()
-                # res = relay.Function([obj.op_lst[-1]], res)
-                return c
-        node = ReplaceConstant().visit(func)
-        self.merge_consecutive_add(node.body)
-        res = self.rewrite_graph()
-        res = relay.Function([self.op_lst[-1]], res)
-        res = ReplaceConstant().visit(res)
-        return res
-
-    def rewrite_graph(self):
-        # print(max(obj.merge_dict.keys()))
-        for i in range(max(self.merge_dict.keys()), -1, -1):
-            cur_node = self.op_lst[i]
-            if i in self.merge_dict.keys():
-                new_node = self.get_op(cur_node, cur_node.args[0], self.merge_dict[i])
-            else:
-                if cur_node.op.name=="add":
-                    new_node = self.get_op(cur_node, new_node, cur_node.args[1])
-                elif cur_node.op.name=="nn.conv2d":
-                    new_node = self.get_op(cur_node, new_node, cur_node.args[1])
-                elif cur_node.op.name=="nn.dense":
-                    new_node = self.get_op(cur_node, new_node, cur_node.args[1])
-                elif cur_node.op.name=="nn.ba":
-                    new_node = self.get_op(cur_node, new_node)
-                else:
-                    new_node = self.get_op(cur_node, new_node)
-                    # if i==4:
-                    #     return new_node
-            print(new_node.op.name, i)
-        return new_node
-
-    def merge_consecutive_add(self, node):
-        while node:
-            try:
-                if self.check_consecutive_add(node):
-                    a1 = node
-                    a2 = a1.args[0]
-                    data = relay.add(a1.args[1], a2.args[1])
-                    self.merge_dict[self.cnt] = data
-                    # print(obj.cnt)
-                    node = a2
-                # print(node.op.name)
-                self.op_lst.append(node)
-                node = node.args[0]
-                self.cnt += 1
-            except:
-                self.cnt = 0
-                break  
-
-    def check_consecutive_add(self, node):
-        try:
-            # print("check ...")
->>>>>>> 47287e252... add a new pass (work for three-layer conv)
             return node.op.name=='add' and len(node.type_args[1].shape)==3 and node.args[0].op.name=='add' and len(node.args[0].type_args[1].shape)==3
         except:
             return False
     
-<<<<<<< HEAD
     def check_branch(self, node):
         try:
             if 'Tuple' not in str(type(node)):
@@ -300,24 +221,6 @@ class CustomPipeline:
         try:
             return 'Constant' in str(type(node))
         except:
-=======
-    def get_op(self, node, *args):
-        if node.op.name=='nn.conv2d':
-            return relay.nn.conv2d(args[0], args[1])
-        elif node.op.name=='nn.relu':
-            return relay.nn.relu(args[0])
-        elif node.op.name=='add':
-            return relay.add(args[0], args[1])
-        elif node.op.name=='nn.max_pool2d':
-            return relay.nn.max_pool2d(args[0])
-        elif node.op.name=='nn.global_avg_pool2d':
-            return relay.nn.global_avg_pool2d(args[0])
-        elif node.op.name=='nn.batch_flatten':
-            return relay.nn.batch_flatten(args[0])
-        elif node.op.name=='nn.dense':
-            return relay.nn.dense(args[0], args[1])
-        else:
->>>>>>> 47287e252... add a new pass (work for three-layer conv)
             return False
 
 @relay.op.register_alter_op_layout("nn.conv2d", level=114)
@@ -380,7 +283,6 @@ def transform_image(image):
 def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100, batches=400, dtype="float32", target="llvm"):
     ctx = tvm.cpu()
     input_shape = (batch_size, 3, 224, 224)
-<<<<<<< HEAD
     if network=="InceptionV3":
         input_shape = (batch_size, 3, 300, 300)
     
@@ -432,50 +334,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             sample = np.random.rand(input_shape[0], input_shape[1],input_shape[2], input_shape[3])
 
         import tvm.contrib.graph_executor as graph_executor
-=======
-    for model_name in model_dict.keys():
-        block = mx.gluon.model_zoo.vision.get_resnet(1, 50, pretrained=True)
-        mod, params = relay.frontend.from_mxnet(
-            block, shape={"data": input_shape}, dtype="float32"
-        )
-        # mod, params = model_dict[model_name].get_workload(batch_size=batch_size, dtype="float32")
-        # print(mod)
-        # sample_for_mxnet = mx.ndarray.array(sample)
-        # output = block(sample_for_mxnet)
-        # print("mxnet output:{}".format(output))
-        # print(params)
-        desired_layouts = {"nn.conv2d": ["NCHW16c", "OIHW16o16i"],"nn.batch_norm": ["NCHW16c", "OIHW16o16i"]}#
-        seq = tvm.transform.Sequential(
-            [
-                relay.transform.CanonicalizeOps(),
-                relay.transform.SimplifyInference(),
-                relay.transform.FoldScaleAxis(),
-                relay.transform.SimplifyExpr(),
-
-                # CustomPipeline(),
-                # relay.transform.FoldConstant(),
-                # tvm.transform.PrintIR(),
-                # relay.transform.FuseOps(),
-                # tvm.transform.PrintIR(),
-                relay.transform.AlterOpLayout(),
-                # tvm.transform.PrintIR(),
-                # relay.transform.ConvertLayout(desired_layouts),
-                relay.transform.MergeComposite(pattern_table()),
-                relay.transform.AnnotateTarget("dnnl"),
-                relay.transform.MergeCompilerRegions(),
-                relay.transform.PartitionGraph(),
-                # tvm.transform.PrintIR(),
-            ]
-        )
-
-
-        if params:
-            mod["main"] = bind_params_by_name(mod["main"], params)
-        with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):# 
-            json, lib, params = relay.build(seq(mod), "llvm", params=params)
-        lib = update_lib(lib)
-        # print(json)
->>>>>>> 47287e252... add a new pass (work for three-layer conv)
         rt_mod = graph_executor.create(json, lib, ctx)#, dump_root="/home/zy/tvm/tutorials/experiment_res/")#Create a runtime executor module given a graph and module.
     
         rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
