@@ -702,7 +702,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
-
     auto avgpool_prim_desc = dnnl::pooling_forward::primitive_desc(avgpool_desc, engine_, true);//allow_enpty=true
 
     // Push to the network.
