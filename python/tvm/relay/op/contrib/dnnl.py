@@ -103,8 +103,8 @@ def make_dense_pattern(with_bias=True):
 @register_pattern_table("dnnl")
 def pattern_table():
     conv2d_bias_relu_pat = ("dnnl.conv2d_bias_relu", make_pattern(with_bias=True))
-    conv2d_relu_pat = ("dnnl.conv2d_relu", make_pattern(with_bias=False))
+    # conv2d_relu_pat = ("dnnl.conv2d_relu", make_pattern(with_bias=False))
     conv2d_bias_pat = ("dnnl.conv2d_bias", make_pattern(with_bias=True, with_relu=False))
     dense_bias_pat = ("dnnl.dense_bias", make_dense_pattern(with_bias=True))
-    dnnl_patterns = [conv2d_bias_relu_pat, conv2d_relu_pat, conv2d_bias_pat, dense_bias_pat]
+    dnnl_patterns = [conv2d_bias_relu_pat, conv2d_bias_pat, dense_bias_pat]#conv2d_relu_pat
     return dnnl_patterns
