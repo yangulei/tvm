@@ -315,7 +315,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
             transform.AnnotateTarget("dnnl"),
             transform.MergeCompilerRegions(),
             transform.PartitionGraph(),
-            # tvm.transform.PrintIR(),
+            tvm.transform.PrintIR(),
             
         ]
     )
