@@ -289,7 +289,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
     model.initialize(ctx=ctx)
     sample_for_mxnet = mx.ndarray.array(sample)
     output = model(sample_for_mxnet)
-    # print("mxnet output:{}".format(output))
+    print("mxnet output:{}".format(output))
 
     mod, params = relay.frontend.from_mxnet(model, shape={"data": input_shape}, dtype="float32")#port the Gluon model to a portable computational graph
     # print(mod)
@@ -319,7 +319,7 @@ def benchmark(batch_size=1, batches=10, warmup=2, cin=3):
             transform.AnnotateTarget("dnnl"),
             transform.MergeCompilerRegions(),
             transform.PartitionGraph(),
-            tvm.transform.PrintIR(),
+            # tvm.transform.PrintIR(),
             
         ]
     )
