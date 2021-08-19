@@ -152,6 +152,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if (entry_out_mem_.count(eid) == 0) {
       return BindDNNLMemory(entry, dnnl::memory(mem_desc, engine_), offset);
     }
+    // std::cout<<"eid short: "<<eid<<std::endl;
     return entry_out_mem_[eid].first;
   }
 
@@ -163,7 +164,13 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     // TODO(@comanic): Support other data types (i.e., int8).
     auto data_node = nodes_[entry.id_];
+    // std::cout<<"data_node: "<<entry.id_<<std::endl;
+    // std::cout<<data_node<<std::endl;
     auto dltype = data_node.GetOpDataType()[entry.index_];
+    // std::cout<<dltype<<std::endl;
+
+    // size_t buffer_size = GetDataSize(*data_entry_[eid]);
+    // std::cout<<"buffer_size: "<<buffer_size<<std::endl;
     ICHECK_EQ(dltype.bits, 32);
 
     entry_out_mem_[eid] = {mem, offset};
