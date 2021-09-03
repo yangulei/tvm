@@ -219,9 +219,14 @@ class PackedFuncBase(object):
            The positional arguments to the function call.
         """
         temp_args = []
+        #start = time.time()
         values, tcodes, num_args = _make_tvm_args(args, temp_args)
+        #end = time.time()
+        #print("_make_tvm_args:{} ms".format((end-start)*1000))
+        #start = time.time()
         ret_val = TVMValue()
         ret_tcode = ctypes.c_int()
+        start = time.time()
         if (
             _LIB.TVMFuncCall(
                 self.handle,
@@ -234,8 +239,13 @@ class PackedFuncBase(object):
             != 0
         ):
             raise get_last_ffi_error()
+        #end = time.time()
+        #print("_LIB.TVMFuncCall:{} ms".format((end-start)*1000))
+        #start = time.time()
         _ = temp_args
         _ = args
+        #end = time.time()
+        #print("others:{} ms".format((end-start)*1000))
         return RETURN_SWITCH[ret_tcode.value](ret_val)
 
 

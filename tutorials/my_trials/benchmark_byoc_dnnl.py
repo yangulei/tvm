@@ -343,6 +343,7 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         mxnet_output = block(sample_for_mxnet)
         rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
         rt_mod.set_input(**params)
+        #print("##############################################################")
         rt_mod.run()
         tvm_output = rt_mod.get_output(0)
         # print("mxnet_output:{}".format(mxnet_output))
@@ -422,6 +423,5 @@ if __name__ == "__main__":
     for network in networks:
         benchmark(network, args.batch_size, profiling=args.profiling,check_acc=args.check_acc,\
         warmup=args.warmup, batches=args.batches, dtype=args.dtype, target=args.target)
-
 
 
