@@ -94,6 +94,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
   void Run() override {
     // Fill in the input buffers.
+    //struct timeval start, end;
+    //gettimeofday( &start, NULL );
     for (size_t i = 0; i < input_nodes_.size(); ++i) {
       auto eid = EntryID(input_nodes_[i], 0);  
       entry_out_mem_[eid].first.set_data_handle(data_entry_[eid]->data);
@@ -264,7 +266,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     }
 
     // Enable ReLU
-    dnnl::primitive_attr attr;
+    //dnnl::primitive_attr attr;
     dnnl::post_ops ops;
     if (has_sum) {
       ops.append_sum(1.f);
@@ -274,6 +276,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       ops.append_eltwise(1.f, dnnl::algorithm::eltwise_relu, 0.f, 1.f);
       attr.set_post_ops(ops);
     }
+    dnnl::primitive_attr attr;
     attr.set_post_ops(ops);
     
 
@@ -412,7 +415,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     for(int i=0; i<data_shape.size()-1; i++)
     {new_data_shape[i] = data_shape[i];}
     data_shape = new_data_shape;
-    data_format = tag::aBcd8b;
+    data_format = tag::aBcd16b;
     }
 
     float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
@@ -466,6 +469,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if(shape.size()>4)
     {
       data_format = tag::aBcd16b;
+      shape[1] = shape[1] * shape[shape.size()-1];
+      dnnl::memory::dims new_data_shape{1,2,3,4};
+      for(int i=0; i<new_data_shape.size(); i++)
+      {new_data_shape[i] = shape[i];}
+      shape = new_data_shape;
     }
 
     auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
@@ -625,6 +633,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_src_md, pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
+
     auto maxpool_prim_desc = dnnl::pooling_forward::primitive_desc(maxpool_desc, engine_);
 
     auto pool = dnnl::pooling_forward(maxpool_prim_desc);
@@ -748,10 +757,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   // Read from the handle and write to DNNL memory (+offset).
   inline void write_to_dnnl_memory(void* handle, const dnnl::memory& mem, size_t size,
                                    size_t offset = 0) {
-    uint8_t* dst = static_cast<uint8_t*>(mem.get_data_handle());
+    //uint8_t* dst = static_cast<uint8_t*>(mem.get_data_handle());
     // std::cout<<"Read from the handle and write to DNNL memory (+offset)."<<dst<<std::endl;
-    std::copy(reinterpret_cast<uint8_t*>(handle), reinterpret_cast<uint8_t*>(handle) + size,
-              dst + offset);
+    //std::copy(reinterpret_cast<uint8_t*>(handle), reinterpret_cast<uint8_t*>(handle) + size,
+    //          dst + offset);
+    mem.set_data_handle(handle);
   }
 
   // Generate DNNL memory description and infer the data layout by the given shape.
