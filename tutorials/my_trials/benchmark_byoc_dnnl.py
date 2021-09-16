@@ -50,23 +50,19 @@ weight_dic = {"a":"O",
 
 import time
 import mxnet as mx
-import warnings
 import gluoncv
 
-# from torch._C import T
+import warnings
 warnings.filterwarnings("ignore")
-from mxnet.gluon.model_zoo.vision import *
 import tvm
 from tvm.relay.op.contrib.dnnl import *
 from tvm import relay
-import tvm.contrib.graph_executor as runtime
+
 import numpy as np
-from tvm.relay.testing import *
 import os
 from tvm.contrib import utils
 from tvm.relay.build_module import bind_params_by_name
 from tvm.contrib.download import download_testdata
-from mxnet.gluon.model_zoo.vision import get_model
 from PIL import Image
 from matplotlib import pyplot as plt
 # import tvm.contrib.graph_executor as graph_executor
