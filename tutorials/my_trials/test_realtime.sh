@@ -1,6 +1,7 @@
 #!/bin/bash
 export OMP_NUM_THREADS=4
 export KMP_AFFINITY=granularity=fine,noduplicates,compact,1,0
+<<<<<<< HEAD
 
 
 ### realtime fps
@@ -22,3 +23,11 @@ for ((i=0; i<7; i++))
         numactl --physcpubind=${startCore}-${endCore} --membind=0 \
         python /home2/zhangya9/tvm/tutorials/my_trials/benchmark_byoc_dnnl.py& #--profiling=True& #>> /home2/zhangya9/tvm/tutorials/experiment_res/0917/opt_byoc_${i}_v1.7.txt &
     done
+=======
+for ((i=0; i<7; i++))
+            do
+                startCore=$[${i}*4]
+                endCore=$[${startCore}+3]
+                numactl --physcpubind=${startCore}-${endCore} --membind=0 python /home2/zhangya9/tvm/tutorials/my_trials/benchmark_byoc_dnnl.py >> /home2/zhangya9/tvm/tutorials/experiment_res/0916/double_check_${i}.txt&
+            done
+>>>>>>> 3b0d63e51... add test shell
