@@ -51,6 +51,7 @@ weight_dic = {"a":"O",
 import time
 import mxnet as mx
 import warnings
+import gluoncv
 
 # from torch._C import T
 warnings.filterwarnings("ignore")
@@ -343,7 +344,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         mxnet_output = block(sample_for_mxnet)
         rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
         rt_mod.set_input(**params)
-        #print("##############################################################")
         rt_mod.run()
         tvm_output = rt_mod.get_output(0)
         # print("mxnet_output:{}".format(mxnet_output))
