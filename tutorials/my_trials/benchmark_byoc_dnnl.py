@@ -377,7 +377,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         total_time_lst = []
         for i in range(batches+warmup):
             tmp = rt_mod.profile()
-
             gap = tmp.calls[1]["Duration (us)"].microseconds
             #percent = tmp.calls[0]["Percent"].percent
             reorder = tmp.calls[2]["Duration (us)"].microseconds
