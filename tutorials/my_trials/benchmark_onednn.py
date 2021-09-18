@@ -49,4 +49,4 @@ def benchmark(batch_size=1, batches=400, warmup=100):
 
         print('{}: FUSED: {} FPS'.format(model_name, with_fuse_fps))
 
-benchmark(128)
+benchmark(1)
