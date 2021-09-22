@@ -188,18 +188,6 @@ def transform_image(image):
     return image
 
 def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100, batches=400, dtype="float32", target="llvm"):
-    sample = np.random.rand(batch_size, 3, 224, 224)#np.ones((batch_size, 3, 224, 224))#
-    if check_acc:
-        img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
-        img_name = "cat.png"
-        img_path = download_testdata(img_url, img_name, module="data")
-        image = Image.open(img_path).resize((224, 224))
-        sample = transform_image(image)
-        batch_size=1
-        warmup = 0
-        batches = 1
-        profiling = False
-    
     ctx = tvm.cpu()
 
     input_shape = (batch_size, 3, 224, 224)
@@ -233,6 +221,7 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         mod["main"] = bind_params_by_name(mod["main"], params)
     with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):# 
         json, lib, params = relay.build(seq(mod), target=target, params=params)
+<<<<<<< HEAD
     import tvm.contrib.graph_executor as graph_executor
     if profiling:
         from tvm.contrib.debugger import debug_executor as graph_executor
@@ -256,6 +245,36 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         for i in range(batches+warmup):
             tmp = rt_mod.profile()
             #print(tmp.calls[2])#1 gap 2 reorder
+=======
+    #exe =  relay.vm.compile(mod, target="llvm", params=params)
+
+    if check_acc:
+        img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
+        img_name = "cat.png"
+        img_path = download_testdata(img_url, img_name, module="data")
+        image = Image.open(img_path).resize((224, 224))
+        sample = transform_image(image)
+
+        import tvm.contrib.graph_executor as graph_executor
+        rt_mod = graph_executor.create(json, lib, ctx)#, dump_root="/home/zy/tvm/tutorials/experiment_res/")#Create a runtime executor module given a graph and module.
+    
+        rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
+        rt_mod.set_input(**params)
+        out = rt_mod.run()
+        sample_for_mxnet = mx.ndarray.array(sample)
+        mxnet_output = block(sample_for_mxnet)
+        tvm_output = rt_mod.get_output(0)
+        print("acc:{}".format(np.mean(tvm_output.asnumpy()-mxnet_output.asnumpy())))
+    elif profiling:
+        from tvm.contrib.debugger import debug_executor as graph_executor
+        rt_mod = graph_executor.create(json, lib, ctx)#, dump_root="/home/zy/tvm/tutorials/experiment_res/")#Create a runtime executor module given a graph and module.
+        sample = np.random.rand(batch_size, 3, 224, 224)#np.ones((batch_size, 3, 224, 224))#
+        rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
+        rt_mod.set_input(**params)
+        total_time_lst = []
+        for i in range(batches+warmup):
+            tmp = rt_mod.profile()
+>>>>>>> 8150b792b... ensure precision / fps
             gap = tmp.calls[1]["Duration (us)"].microseconds
             #percent = tmp.calls[0]["Percent"].percent
             reorder = tmp.calls[2]["Duration (us)"].microseconds
@@ -263,17 +282,34 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             print("{}/{}: gap:{:.4f}, reorder:{:.4f}".format(i, batches+warmup, gap, reorder))
             total_time = gap+reorder
             total_time_lst.append(total_time)
+<<<<<<< HEAD
         print("all ops' execution time:{}".format(np.mean(total_time_lst[warmup::])/1000))
         print("profiling time:{}".format(datetime.datetime.now()-tic))
     else:
+=======
+        print("all ops' execution time:{}".format(np.mean(total_time_lst[warmup::])))
+        print("all ops' execution time:{}".format(np.mean(total_time_lst[warmup::])/1000))
+        print("profiling time:{}".format(datetime.datetime.now()-tic))
+    
+    else:
+        import tvm.contrib.graph_executor as graph_executor
+        rt_mod = graph_executor.create(json, lib, ctx)
+        sample = np.random.rand(batch_size, 3, 224, 224)#np.ones((batch_size, 3, 224, 224))#
+        rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
+        rt_mod.set_input(**params)
+>>>>>>> 8150b792b... ensure precision / fps
         for i in range(batches+warmup):
             if i == warmup:
                 tic = time.time()
             out = rt_mod.run()
         with_fuse_fps = batches * batch_size / (time.time() - tic)
         print("{}: with_fuse_fps: {:.4f} fps".format(network, with_fuse_fps))
+<<<<<<< HEAD
     
 
+=======
+        
+>>>>>>> 8150b792b... ensure precision / fps
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
