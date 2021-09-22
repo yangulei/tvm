@@ -48,6 +48,14 @@ weight_dic = {"a":"O",
               "c":"H",
               "d":"W",}
 
+translate_dict = {"abcd":"NCHW",
+                "Acdb8a": "OHWI8o",
+                "Acdb16a": "OHWI16o",
+                "ABcd8b8a": "OIHW8i8o",
+                "ABcd16b16a": "OIHW16i16o",
+                "aBcd8b": "NCHW8c",
+                "aBcd16b": "NCHW16c",}
+
 @tvm.instrument.pass_instrument
 class PrintIR:
     """Print the name of the pass, the IR, only before passes execute."""
