@@ -237,32 +237,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         mod["main"] = bind_params_by_name(mod["main"], params)
     with tvm.transform.PassContext(opt_level=3):#, instruments=[PrintIR()]):# 
         json, lib, params = relay.build(seq(mod), target=target, params=params)
-<<<<<<< HEAD
-    import tvm.contrib.graph_executor as graph_executor
-    if profiling:
-        from tvm.contrib.debugger import debug_executor as graph_executor
-        # warmup = 10
-        # batches = 1
-    rt_mod = graph_executor.create(json, lib, ctx)#, dump_root="/home/zy/tvm/tutorials/experiment_res/")#Create a runtime executor module given a graph and module.
-    
-    rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
-    rt_mod.set_input(**params)
-    
-    if check_acc:
-        sample_for_mxnet = mx.ndarray.array(sample)
-        mxnet_output = block(sample_for_mxnet).asnumpy()
-        tvm_output = rt_mod.get_output(0).asnumpy()
-        print("mse: {}".format(np.mean((tvm_output-mxnet_output)**2)))
-
-    if profiling:
-        import datetime
-        total_time_lst = []
-        tic = datetime.datetime.now()
-        for i in range(batches+warmup):
-            tmp = rt_mod.profile()
-            #print(tmp.calls[2])#1 gap 2 reorder
-=======
-    #exe =  relay.vm.compile(mod, target="llvm", params=params)
 
     if check_acc:
         img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
@@ -290,7 +264,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         total_time_lst = []
         for i in range(batches+warmup):
             tmp = rt_mod.profile()
->>>>>>> 8150b792b... ensure precision / fps
             gap = tmp.calls[1]["Duration (us)"].microseconds
             #percent = tmp.calls[0]["Percent"].percent
             reorder = tmp.calls[2]["Duration (us)"].microseconds
@@ -298,11 +271,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             print("{}/{}: gap:{:.4f}, reorder:{:.4f}".format(i, batches+warmup, gap, reorder))
             total_time = gap+reorder
             total_time_lst.append(total_time)
-<<<<<<< HEAD
-        print("all ops' execution time:{}".format(np.mean(total_time_lst[warmup::])/1000))
-        print("profiling time:{}".format(datetime.datetime.now()-tic))
-    else:
-=======
         print("all ops' execution time:{}".format(np.mean(total_time_lst[warmup::])))
         print("all ops' execution time:{}".format(np.mean(total_time_lst[warmup::])/1000))
         print("profiling time:{}".format(datetime.datetime.now()-tic))
@@ -313,19 +281,13 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         sample = np.random.rand(batch_size, 3, 224, 224)#np.ones((batch_size, 3, 224, 224))#
         rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
         rt_mod.set_input(**params)
->>>>>>> 8150b792b... ensure precision / fps
         for i in range(batches+warmup):
             if i == warmup:
                 tic = time.time()
             out = rt_mod.run()
         with_fuse_fps = batches * batch_size / (time.time() - tic)
         print("{}: with_fuse_fps: {:.4f} fps".format(network, with_fuse_fps))
-<<<<<<< HEAD
-    
 
-=======
-        
->>>>>>> 8150b792b... ensure precision / fps
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
