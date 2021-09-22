@@ -83,8 +83,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
   void Run() override {
     // Fill in the input buffers.
-    //struct timeval start, end;
-    //gettimeofday( &start, NULL );
     for (size_t i = 0; i < input_nodes_.size(); ++i) {
       auto eid = EntryID(input_nodes_[i], 0);  
       entry_out_mem_[eid].first.set_data_handle(data_entry_[eid]->data);
@@ -166,13 +164,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     // TODO(@comanic): Support other data types (i.e., int8).
     auto data_node = nodes_[entry.id_];
-    // std::cout<<"data_node: "<<entry.id_<<std::endl;
-    // std::cout<<data_node<<std::endl;
     auto dltype = data_node.GetOpDataType()[entry.index_];
-    // std::cout<<dltype<<std::endl;
-
-    // size_t buffer_size = GetDataSize(*data_entry_[eid]);
-    // std::cout<<"buffer_size: "<<buffer_size<<std::endl;
     ICHECK_EQ(dltype.bits, 32);
 
     entry_out_mem_[eid] = {mem, offset};
@@ -321,9 +313,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dim B = input_shape[0],  // batch size
         IC = input_shape[1],               // input channels
         OC = weight_shape[0];              // output channels
-
-    
-    // std::cout<<"dense"<<IC<<" "<<OC<<std::endl;
 
     // Memory shapes.
     dnnl::memory::dims data_dims = {B, IC};
@@ -748,10 +737,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   // Read from the handle and write to DNNL memory (+offset).
   inline void write_to_dnnl_memory(void* handle, const dnnl::memory& mem, size_t size,
                                    size_t offset = 0) {
-    //uint8_t* dst = static_cast<uint8_t*>(mem.get_data_handle());
-    // std::cout<<"Read from the handle and write to DNNL memory (+offset)."<<dst<<std::endl;
-    //std::copy(reinterpret_cast<uint8_t*>(handle), reinterpret_cast<uint8_t*>(handle) + size,
-    //          dst + offset);
     mem.set_data_handle(handle);
   }
 
