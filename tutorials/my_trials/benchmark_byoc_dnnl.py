@@ -329,7 +329,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             relay.transform.FoldConstant(),
             relay.transform.FoldScaleAxis(),
             # tvm.transform.PrintIR(),
-
             CustomPipeline(),
             relay.transform.FoldConstant(),
             # tvm.transform.PrintIR(),
