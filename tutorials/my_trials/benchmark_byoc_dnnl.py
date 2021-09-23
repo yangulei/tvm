@@ -305,7 +305,10 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             relay.transform.FoldConstant(),
             relay.transform.FoldScaleAxis(),
             # tvm.transform.PrintIR(),
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6b2384eab... enable vgg / vgg-bn series
             CustomPipeline(),
             relay.transform.FoldConstant(),
             # tvm.transform.PrintIR(),
