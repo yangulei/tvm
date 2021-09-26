@@ -205,6 +205,7 @@ class CustomPipeline:
 
     def check_consecutive_add(self, node):
         try:
+            # print("check ...")
             return node.op.name=='add' and len(node.type_args[1].shape)==3 and node.args[0].op.name=='add' and len(node.args[0].type_args[1].shape)==3
         except:
             return False
@@ -222,9 +223,9 @@ class CustomPipeline:
         except:
             return False
 
-    def check_constant(self, node):
+    def check_Var(self, node):
         try:
-            return 'Constant' in str(type(node))
+            return 'Var' in str(type(node))
         except:
             return False
 
@@ -305,10 +306,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             relay.transform.FoldConstant(),
             relay.transform.FoldScaleAxis(),
             # tvm.transform.PrintIR(),
-<<<<<<< HEAD
-
-=======
->>>>>>> 6b2384eab... enable vgg / vgg-bn series
             CustomPipeline(),
             relay.transform.FoldConstant(),
             # tvm.transform.PrintIR(),
