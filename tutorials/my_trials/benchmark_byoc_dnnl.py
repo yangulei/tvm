@@ -184,6 +184,7 @@ class CustomPipeline:
 
     def check_consecutive_add(self, node):
         try:
+            # print("check ...")
             return node.op.name=='add' and len(node.type_args[1].shape)==3 and node.args[0].op.name=='add' and len(node.args[0].type_args[1].shape)==3
         except:
             return False
