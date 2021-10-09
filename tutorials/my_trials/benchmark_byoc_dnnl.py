@@ -433,7 +433,7 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=20)
     parser.add_argument("--batches", type=int, default=100)
     parser.add_argument("--profiling", type=bool, default=False)
-    parser.add_argument("--check_acc", type=bool, default=False)
+    parser.add_argument("--check_acc", type=bool, default=True)
     args = parser.parse_args()
 
     if args.network == "all":
