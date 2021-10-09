@@ -609,6 +609,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_src_md, pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
+    std::cout<<"maxpool"<<std::endl;
 
     auto maxpool_prim_desc = dnnl::pooling_forward::primitive_desc(maxpool_desc, engine_);
 
@@ -703,6 +704,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
+
+    std::cout<<"avgpool"<<std::endl;
+
     auto avgpool_prim_desc = dnnl::pooling_forward::primitive_desc(avgpool_desc, engine_, true);//allow_enpty=true
 
     // Push to the network.
