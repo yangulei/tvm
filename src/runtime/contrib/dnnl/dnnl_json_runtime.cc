@@ -449,15 +449,14 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto data_format = tag::abcd;
     if(shape.size()>4)
     {
-      data_format = tag::aBcd16b;
+      auto data_format = tag::aBcd8b;
       shape[1] = shape[1] * shape[shape.size()-1];
       dnnl::memory::dims new_data_shape{1,2,3,4};
       for(int i=0; i<new_data_shape.size(); i++)
       {new_data_shape[i] = shape[i];}
       shape = new_data_shape;
+      data_md = dnnl::memory::desc({shape, dt::f32, data_format});
     }
-
-    auto data_md = dnnl::memory::desc{{shape}, dt::f32, data_format};
 
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
@@ -469,7 +468,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     net_.push_back(relu);
 
     auto data_memory = BindDNNLMemory(data_entry, data_md);
-
     auto out_md = data_md;//dnnl::memory::desc(shape, dt::f32, data_format);
     JSONGraphNodeEntry out_entry(nid, 0);
     auto out_memory = BindDNNLMemory(out_entry, data_md);
@@ -493,10 +491,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       data_dims.push_back(data_shape);
       data_mds.push_back(data_md);
       data_memories.push_back(BindDNNLMemory(entry, data_md));
-<<<<<<< HEAD
-=======
-
->>>>>>> a8ae7627b... enable relay/ir/query_layout
     }
     ICHECK(data_dims[0] == data_dims[1]);
     auto out_md = data_mds[0];
@@ -618,6 +612,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_src_md, pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
+    std::cout<<"maxpool"<<std::endl;
 
     auto maxpool_prim_desc = dnnl::pooling_forward::primitive_desc(maxpool_desc, engine_);
 
@@ -708,6 +703,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
+
+    std::cout<<"avgpool"<<std::endl;
+
     auto avgpool_prim_desc = dnnl::pooling_forward::primitive_desc(avgpool_desc, engine_, true);//allow_enpty=true
 
     // Push to the network.
