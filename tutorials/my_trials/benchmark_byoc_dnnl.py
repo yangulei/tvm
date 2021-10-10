@@ -219,15 +219,6 @@ class CustomPipeline:
                 return cnt>=2
             else:
                 return True
-<<<<<<< HEAD
-=======
-        except:
-            return False
-
-    def check_constant(self, node):
-        try:
-            return 'Constant' in str(type(node))
->>>>>>> 63f259793... fix custom pipeline
         except:
             return False
 
@@ -237,44 +228,6 @@ class CustomPipeline:
         except:
             return False
 
-<<<<<<< HEAD
-=======
-    def get_op(self, node, pre_node=None, arg_lst = None):
-        if 'Tuple' in str(type(node)):
-            return relay.Tuple(arg_lst)
-
-        if arg_lst is not None:
-            args = arg_lst
-        else:
-            args = []
-            for a in node.args:
-                if 'Call' in str(type(a)):
-                    args.append(pre_node)
-                else:
-                    args.append(a)
-
-        if node.op.name=='nn.conv2d':
-            return relay.nn.conv2d(args[0], args[1], **node.attrs)
-        elif node.op.name=='nn.relu':
-            return relay.nn.relu(args[0])
-        elif node.op.name=='multiply':
-            return relay.multiply(args[0], args[1])
-        elif node.op.name=='add':
-            return relay.add(args[0], args[1])
-        elif node.op.name=='concatenate':
-            return relay.concatenate(pre_node, **node.attrs)
-        elif node.op.name=='nn.max_pool2d':
-            return relay.nn.max_pool2d(args[0], **node.attrs)
-        elif node.op.name=='nn.avg_pool2d':
-            return relay.nn.avg_pool2d(args[0], **node.attrs)
-        elif node.op.name=='nn.batch_flatten':
-            return relay.nn.batch_flatten(args[0])
-        elif node.op.name=='nn.dense':
-            return relay.nn.dense(args[0], args[1], **node.attrs)
-        else:
-            return False
-
->>>>>>> 63f259793... fix custom pipeline
 @relay.op.register_alter_op_layout("nn.conv2d", level=114)
 def alter_conv2d(attrs, inputs, tinfos, out_type):
     data, weight = inputs
@@ -301,11 +254,6 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     dilation = attrs.get_int_tuple("dilation")
 
     res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
-<<<<<<< HEAD
-=======
-    # print(res)
-
->>>>>>> 63f259793... fix custom pipeline
     new_attrs = dict(attrs)
 
     src_df, weight_df, dst_df = res.split(',')
