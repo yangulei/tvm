@@ -73,9 +73,7 @@ translate_dict = {"abcd":"NCHW",
                 "Acdb8a": "OHWI8o",
                 "Acdb16a": "OHWI16o",
                 "ABcd8b8a": "OIHW8i8o",
-                "ABcd16b16a": "OIHW16i16o",
-                "aBcd8b": "NCHW8c",
-                "aBcd16b": "NCHW16c",}
+                "ABcd16b16a": "OIHW16i16o",}
 
 @tvm.instrument.pass_instrument
 class PrintIR:
@@ -305,6 +303,7 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             relay.transform.FoldConstant(),
             relay.transform.FoldScaleAxis(),
             # tvm.transform.PrintIR(),
+
             CustomPipeline(),
             relay.transform.FoldConstant(),
             # tvm.transform.PrintIR(),
