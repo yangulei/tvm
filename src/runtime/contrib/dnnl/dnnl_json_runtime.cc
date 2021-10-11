@@ -92,6 +92,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       entry_out_mem_[eid].first.set_data_handle(data_entry_[eid]->data);
     }
     // Invoke the engine through intepreting the stream.
+    std::cout<<"net_.size():"<<net_.size()<<std::endl;
     for (size_t i = 0; i < net_.size(); ++i) {
       net_.at(i).execute(stream_, net_args_.at(i));
     }
@@ -244,7 +245,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     }
 
     // Enable ReLU
-    //dnnl::primitive_attr attr;
+    dnnl::primitive_attr attr;
     dnnl::post_ops ops;
     if (has_sum) {
       ops.append_sum(1.f);
@@ -254,9 +255,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       ops.append_eltwise(1.f, dnnl::algorithm::eltwise_relu, 0.f, 1.f);
       attr.set_post_ops(ops);
     }
-    dnnl::primitive_attr attr;
-    attr.set_post_ops(ops);
-    
 
     auto conv2d_prim_desc = dnnl::convolution_forward::primitive_desc(conv_desc, attr, engine_);
 
@@ -741,7 +739,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   // Read from the handle and write to DNNL memory (+offset).
   inline void write_to_dnnl_memory(void* handle, const dnnl::memory& mem, size_t size,
                                    size_t offset = 0) {
-    mem.set_data_handle(handle);
+    uint8_t* dst = static_cast<uint8_t*>(mem.get_data_handle());
+    std::copy(reinterpret_cast<uint8_t*>(handle), reinterpret_cast<uint8_t*>(handle) + size,
+              dst + offset);
   }
 
   // Generate DNNL memory description and infer the data layout by the given shape.
