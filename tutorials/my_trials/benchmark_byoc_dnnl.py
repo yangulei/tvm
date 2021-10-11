@@ -229,12 +229,6 @@ class CustomPipeline:
 @relay.op.register_alter_op_layout("nn.conv2d", level=114)
 def alter_conv2d(attrs, inputs, tinfos, out_type):
     data, weight = inputs
-<<<<<<< HEAD
-=======
-    # global cnt_conv_num
-    # cnt_conv_num += 1
-    # print(cnt_conv_num)
->>>>>>> bb8d000a9... enable inceptionv3
     def get_shape(tensor):
         if 'Var' in str(type(tensor)):
             return tensor.type_annotation.concrete_shape
@@ -252,18 +246,10 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
 
     N, IC, IH, IW = get_shape(data)
     OC, IC, KH, KW = get_shape(weight)
-<<<<<<< HEAD
     N, OC, OH, OW = get_shape(out_type)
     PH_L, PW_L, PH_R, PW_R = attrs.get_int_tuple("padding")
     SH, SW = attrs.get_int_tuple("strides")
     dilation = attrs.get_int_tuple("dilation")
-=======
-    N, _, OH, OW = get_shape(out_type)
-    PH_L, PW_L, PH_R, PW_R = attrs.padding
-    PH_L, PH_R, PW_L, PW_R = int(PH_L), int(PH_R), int(PW_L), int(PW_R)
-    SH, SW = attrs.strides
-    SH, SW = int(SH), int(SW)
->>>>>>> bb8d000a9... enable inceptionv3
 
     res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
     new_attrs = dict(attrs)
@@ -323,10 +309,7 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             # tvm.transform.PrintIR(),
             
             relay.transform.AlterOpLayout(),
-<<<<<<< HEAD
             relay.transform.FoldConstant(),
-=======
->>>>>>> bb8d000a9... enable inceptionv3
             # tvm.transform.PrintIR(),
 
             relay.transform.MergeComposite(pattern_table()),

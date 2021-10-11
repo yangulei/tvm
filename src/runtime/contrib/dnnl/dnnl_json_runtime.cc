@@ -103,6 +103,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       entry_out_mem_[eid].first.set_data_handle(data_entry_[eid]->data);
     }
     // Invoke the engine through intepreting the stream.
+    std::cout<<"net_.size():"<<net_.size()<<std::endl;
     for (size_t i = 0; i < net_.size(); ++i) {
       net_.at(i).execute(stream_, net_args_.at(i));
     }
@@ -186,6 +187,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
   void Conv2d(const size_t& nid, const bool has_relu = false, const bool has_bias = false, const bool has_sum = false) {
     auto node = nodes_[nid];
+<<<<<<< HEAD
+=======
+    cnt_conv += 1;
+    std::cout<<cnt_conv<<std::endl;
+    // Setup attributes.
+>>>>>>> d4e09023d... correct when only conv dense relu with dnnl backend
     auto data_entry = node.GetInputs()[0];
     auto weight_entry = node.GetInputs()[1];
     dnnl::memory::dims input_shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_]; 
@@ -206,7 +213,23 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
     }
     std::cout<<"conv"<<std::endl;
+<<<<<<< HEAD
 >>>>>>> bb8d000a9... enable inceptionv3
+=======
+    std::cout<<"input:";
+    for (auto i: input_shape){
+      std::cout<<i<<" ";
+    }
+    std::cout<<std::endl;
+
+    std::cout<<"weight:";
+    for (auto i: weight_shape){
+      std::cout<<i<<" ";
+    }
+    std::cout<<std::endl;
+
+    // std::cout<<"raw:"<<IC<<" "<<IH<<" "<<IW<<" "<<OC<<" "<<KH<<" "<<KW<<" "<<PW_L<<" "<<PW_R<<" "<<PH_L<<" "<<PH_R<<" "<<SH<<" "<<SW<<" "<<OH<<" "<<OW<<std::endl;
+>>>>>>> d4e09023d... correct when only conv dense relu with dnnl backend
     dnnl::memory::dim N = input_shape[0],       // batch size
         IC = input_shape[1],                    // input channels
         IH = input_shape[2],                    // input height
@@ -251,12 +274,18 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 >>>>>>> bb8d000a9... enable inceptionv3
         }
     }
+<<<<<<< HEAD
     if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0].substr(0,4)=="OIHW"){
         KH = weight_shape[2];
         KW = weight_shape[3];
 
     dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
                       OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
+=======
+
+    std::cout<<"recompute:"<<IC<<" "<<IH<<" "<<IW<<" "<<OC<<" "<<KH<<" "<<KW<<" "<<PW_L<<" "<<PW_R<<" "<<PH_L<<" "<<PH_R<<" "<<SH<<" "<<SW<<" "<<OH<<" "<<OW<<std::endl;
+    // Memory shapes.
+>>>>>>> d4e09023d... correct when only conv dense relu with dnnl backend
     dnnl::memory::dims src_dims = {N, IC, IH, IW};
     dnnl::memory::dims weights_dims = {OC, IC, KH, KW};
     if (groups > 1) {
@@ -289,19 +318,20 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 >>>>>>> bb8d000a9... enable inceptionv3
 
     // Enable ReLU
-    //dnnl::primitive_attr attr;
+    dnnl::primitive_attr attr;
     dnnl::post_ops ops;
     if (has_sum) {
+<<<<<<< HEAD
       ops.append_sum(1.f);
+=======
+      ops.append_sum(1.f);//, dt::f32);
+>>>>>>> d4e09023d... correct when only conv dense relu with dnnl backend
       attr.set_post_ops(ops);
     }
     if (has_relu) {
       ops.append_eltwise(1.f, dnnl::algorithm::eltwise_relu, 0.f, 1.f);
       attr.set_post_ops(ops);
     }
-    dnnl::primitive_attr attr;
-    attr.set_post_ops(ops);
-    
 
     auto conv2d_prim_desc = dnnl::convolution_forward::primitive_desc(conv_desc, attr, engine_);
 
@@ -788,7 +818,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   // Read from the handle and write to DNNL memory (+offset).
   inline void write_to_dnnl_memory(void* handle, const dnnl::memory& mem, size_t size,
                                    size_t offset = 0) {
-    mem.set_data_handle(handle);
+    uint8_t* dst = static_cast<uint8_t*>(mem.get_data_handle());
+    std::copy(reinterpret_cast<uint8_t*>(handle), reinterpret_cast<uint8_t*>(handle) + size,
+              dst + offset);
   }
 
   // Generate DNNL memory description and infer the data layout by the given shape.
