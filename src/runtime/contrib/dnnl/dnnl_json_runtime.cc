@@ -68,12 +68,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OIHW16i16o", tag::OIhw16i16o},
     {"OIHW16o", tag::Oihw16o},
     {"OHWI16o", tag::Ohwi16o},
-    {"NCHW", tag::nchw},
-    {"OIHW", tag::oihw},
-    {"NCHW8c", tag::nChw8c}, 
+    {"NCHW", tag::nchw},//tag::abcd
+    {"OIHW", tag::oihw},//tag::abcd
+    {"NCHW8c", tag::nChw8c}, //tag::aBcd8b
     {"OIHW8o8i", tag::OIhw8o8i},
     {"OIHW8i8o", tag::OIhw8i8o},
-    {"OHWI8o", tag::Ohwi8o},
+    {"OHWI8o", tag::Ohwi8o},//tag::Acdb8a
     };
 
   DNNLJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
@@ -449,6 +449,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if(shape.size()>4)
     {
       auto data_format = tag::aBcd8b;
+      if(shape[shape.size()-1]==16){
+        data_format = tag::aBcd16b;
+      }
       shape[1] = shape[1] * shape[shape.size()-1];
       dnnl::memory::dims new_data_shape{1,2,3,4};
       for(int i=0; i<new_data_shape.size(); i++)
@@ -524,12 +527,21 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     
     for (auto entry : node.GetInputs()) {
       auto data_shape = nodes_[entry.id_].GetOpShape()[entry.index_];
+      // std::cout<<"concat raw "<<std::endl;
+      // for(auto i: data_shape){
+      //   std::cout<<i<<" ";
+      // }
+      // std::cout<<std::endl;
       dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
 <<<<<<< HEAD
 =======
       if(data_shape.size()>4)
     {
       auto data_format = tag::aBcd8b;
+      if(data_shape[data_shape.size()-1]==16){
+        data_format = tag::aBcd16b;
+      }
+      
       data_shape[1] = data_shape[1] * data_shape[data_shape.size()-1];
       dnnl::memory::dims new_data_shape{1,2,3,4};
       for(int i=0; i<new_data_shape.size(); i++)
@@ -537,6 +549,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       data_shape = new_data_shape;
       data_md = dnnl::memory::desc({data_shape, dt::f32, data_format});
     }
+<<<<<<< HEAD
 <<<<<<< HEAD
       for(auto i: data_shape){
         std::cout<<i<<" ";
@@ -549,6 +562,14 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       // }
       // std::cout<<std::endl;
 >>>>>>> 2ad741f94... 10/11 check resnet vgg-bn inceptionv3 densenet121 acc (for densenet disbale concat max/avgpool)
+=======
+
+    // std::cout<<"concat"<<std::endl;
+    //   for(auto i: data_shape){
+    //     std::cout<<i<<" ";
+    //   }
+    //   std::cout<<std::endl;
+>>>>>>> ac5faf204... check densenet acc
       data_mds.push_back(data_md);
       data_memories.push_back(BindDNNLMemory(entry, data_md));
     }
