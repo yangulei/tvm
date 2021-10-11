@@ -92,9 +92,10 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       entry_out_mem_[eid].first.set_data_handle(data_entry_[eid]->data);
     }
     // Invoke the engine through intepreting the stream.
-    std::cout<<"net_.size():"<<net_.size()<<std::endl;
+    // std::cout<<"net_.size():"<<net_.size()<<std::endl;
     for (size_t i = 0; i < net_.size(); ++i) {
       net_.at(i).execute(stream_, net_args_.at(i));
+      // std::cout<<"run:"<<i<<std::endl;
     }
     stream_.wait();
   }
@@ -595,6 +596,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims padding_dims_r = {PH_R, PW_R};
     dnnl::memory::dims dilation = {DH, DW};
 
+    // std::cout<<"maxpool"<<std::endl;
+    // std::cout<<"input:";
+    // for (auto i: input_shape){
+    //   std::cout<<i<<" ";
+    // }
+    // std::cout<<std::endl;
     // Memory descriptions.
     auto pool_src_md = dnnl::memory::desc(src_dims, dt::f32, src_df);
     auto pool_dst_md = dnnl::memory::desc(dst_dims, dt::f32, dst_df);
@@ -607,7 +614,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       pool_src_md, pool_dst_md, strides_dims, kernel_dims,
       padding_dims_l, padding_dims_r
     );
-    std::cout<<"maxpool"<<std::endl;
+    // std::cout<<"maxpool"<<std::endl;
 
     auto maxpool_prim_desc = dnnl::pooling_forward::primitive_desc(maxpool_desc, engine_);
 
@@ -703,7 +710,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       padding_dims_l, padding_dims_r
     );
 
-    std::cout<<"avgpool"<<std::endl;
+    // std::cout<<"avgpool"<<std::endl;
 
     auto avgpool_prim_desc = dnnl::pooling_forward::primitive_desc(avgpool_desc, engine_, true);//allow_enpty=true
 
