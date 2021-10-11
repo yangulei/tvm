@@ -520,6 +520,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     
     for (auto entry : node.GetInputs()) {
       auto data_shape = nodes_[entry.id_].GetOpShape()[entry.index_];
+      // std::cout<<"concat raw "<<std::endl;
+      // for(auto i: data_shape){
+      //   std::cout<<i<<" ";
+      // }
+      // std::cout<<std::endl;
       dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
         data_mds.push_back(data_md);
         data_memories.push_back(BindDNNLMemory(entry, data_md));
