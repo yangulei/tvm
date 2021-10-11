@@ -195,25 +195,35 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dim groups = std::stoi(node.GetAttr<std::vector<std::string>>("groups")[0]);
     auto src_df = layout_dict[node.GetAttr<std::vector<std::string>>("data_layout")[0]];
     auto weight_df = layout_dict[node.GetAttr<std::vector<std::string>>("kernel_layout")[0]];
+<<<<<<< HEAD
     auto dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
     std::vector<std::string> outC = node.GetAttr<std::vector<std::string>>("channels");
     
+=======
+    auto dst_df = src_df;//layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
+
+    if(node.GetAttr<std::vector<std::string>>("out_layout")[0].size()!=0){
+      dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
+    }
+    std::cout<<"conv"<<std::endl;
+>>>>>>> bb8d000a9... enable inceptionv3
     dnnl::memory::dim N = input_shape[0],       // batch size
         IC = input_shape[1],                    // input channels
         IH = input_shape[2],                    // input height
-        IW = input_shape[2],                    // input width
+        IW = input_shape[3],                    // input width
         OC = weight_shape[0],                   // output channels
         KH = weight_shape[2],                   // weight height
         KW = weight_shape[3],                   // weight width
-        PH_L = std::stoi(str_padding[1]),       // height padding: left
-        PH_R = std::stoi(str_padding[3]),       // height padding: right
-        PW_L = std::stoi(str_padding[0]),       // width padding: left
-        PW_R = std::stoi(str_padding[2]),       // width padding: right
+        PW_L = std::stoi(str_padding[1]),       // height padding: left
+        PW_R = std::stoi(str_padding[3]),       // height padding: right
+        PH_L = std::stoi(str_padding[0]),       // width padding: left
+        PH_R = std::stoi(str_padding[2]),       // width padding: right
         SH = std::stoi(str_strides[0]),         // height-wise stride
-        SW = std::stoi(str_strides[0]),         // weight-wise stride
+        SW = std::stoi(str_strides[1]),         // weight-wise stride
         OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
         OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
 
+<<<<<<< HEAD
         SW = std::stoi(str_strides[1]);         // weight-wise stride
     
     if (node.GetAttr<std::vector<std::string>>("data_layout")[0].substr(0,4)=="NCHW"){
@@ -222,6 +232,23 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         IW = input_shape[3];
         if (input_shape.size()==5){
           IC = IC * input_shape[input_shape.size()-1];
+=======
+    if(node.GetAttr<std::vector<std::string>>("data_layout")[0].size()>4)
+      {
+        IC = input_shape[1]*input_shape[4];                   // input channels
+    }
+
+    if(node.GetAttr<std::vector<std::string>>("kernel_layout")[0].size()>4)
+      {
+        OC = weight_shape[0]*weight_shape[weight_shape.size()-1];
+        if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0]=="OHWI16o" || node.GetAttr<std::vector<std::string>>("kernel_layout")[0]=="OHWI8o")
+        {
+          OC = weight_shape[0]*weight_shape[weight_shape.size()-1];
+          KH = weight_shape[1];
+          KW = weight_shape[2];
+          OH = (IH - KH + PH_L + PH_R) / SH + 1;
+          OW = (IW - KW + PW_L + PW_R) / SW + 1;
+>>>>>>> bb8d000a9... enable inceptionv3
         }
     }
     if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0].substr(0,4)=="OIHW"){
@@ -240,7 +267,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims strides_dims = {SH, SW};
     dnnl::memory::dims padding_dims_l = {PH_L, PW_L};
     dnnl::memory::dims padding_dims_r = {PH_R, PW_R};
-    std::cout<<OC<<" "<<KH<<" "<<KW<<" "<<OH<<" "<<OW<<std::endl;
+
     // Memory descriptions.
     auto conv_src_md = dnnl::memory::desc(src_dims, dt::f32, src_df);
     auto conv_weights_md = dnnl::memory::desc(weights_dims, dt::f32, weight_df);
@@ -251,11 +278,15 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto conv_desc = dnnl::convolution_forward::desc(
         dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct, conv_src_md,
         conv_weights_md, conv_bias_md, conv_dst_md, strides_dims, padding_dims_l, padding_dims_r);
+<<<<<<< HEAD
     if (!has_bias){
        conv_desc = dnnl::convolution_forward::desc(
         dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct, conv_src_md,
         conv_weights_md, conv_dst_md, strides_dims, padding_dims_l, padding_dims_r);
     }
+=======
+    // std::cout<<"conv"<<std::endl;
+>>>>>>> bb8d000a9... enable inceptionv3
 
     // Enable ReLU
     //dnnl::primitive_attr attr;
@@ -526,6 +557,23 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     for (auto entry : node.GetInputs()) {
       auto data_shape = nodes_[entry.id_].GetOpShape()[entry.index_];
       dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
+<<<<<<< HEAD
+=======
+      if(data_shape.size()>4)
+    {
+      auto data_format = tag::aBcd8b;
+      data_shape[1] = data_shape[1] * data_shape[data_shape.size()-1];
+      dnnl::memory::dims new_data_shape{1,2,3,4};
+      for(int i=0; i<new_data_shape.size(); i++)
+      {new_data_shape[i] = data_shape[i];}
+      data_shape = new_data_shape;
+      data_md = dnnl::memory::desc({data_shape, dt::f32, data_format});
+    }
+      for(auto i: data_shape){
+        std::cout<<i<<" ";
+      }
+      std::cout<<std::endl;
+>>>>>>> bb8d000a9... enable inceptionv3
       data_mds.push_back(data_md);
       data_memories.push_back(BindDNNLMemory(entry, data_md));
     }
