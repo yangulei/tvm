@@ -417,7 +417,7 @@ if __name__ == "__main__":
                 "vgg11", "vgg13", "vgg16", "vgg19", 
                 "vgg11_bn", "vgg13_bn", "vgg16_bn", "vgg19_bn",
                 "densenet121", "InceptionV3", "all"],
-        default="all",
+        default="resnet18",
         help="The name of the neural network.",
     )
     parser.add_argument("--batch-size", type=int, default=1, help="The batch size")
@@ -432,7 +432,7 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=20)
     parser.add_argument("--batches", type=int, default=100)
     parser.add_argument("--profiling", type=bool, default=False)
-    parser.add_argument("--check_acc", type=bool, default=True)
+    parser.add_argument("--check_acc", type=bool, default=False)
     args = parser.parse_args()
 
     if args.network == "all":
