@@ -23,8 +23,8 @@ def benchmark(batch_size=1, batches=400, warmup=100):
         # without_fuse_fps = batches * batch_size / (time.time() - tic)
 
         #net = model_dict[model_name](pretrained=True)
-        #net = mx.gluon.model_zoo.vision.get_resnet(1, 50, pretrained=True)
-        net = gluoncv.model_zoo.get_model(network_dict['resnet50'], pretrained=True)
+        # net = mx.gluon.model_zoo.vision.get_resnet(1, 50, pretrained=True)
+        net = mx.gluon.model_zoo.get_model(network_dict['resnet50'], pretrained=True)
         net.hybridize(static_alloc=True, static_shape=True)
         # print(#net)
         net.optimize_for(sample, backend='MKLDNN', static_alloc=True, static_shape=True)
