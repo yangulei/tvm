@@ -352,6 +352,8 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         json, lib, params = relay.build(seq(mod), target=target, params=params)
 
     if check_acc:
+        # print(os.getpid())
+        # input(os.getpid())
         img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
         img_name = "cat.png"
         img_path = download_testdata(img_url, img_name, module="data")
@@ -417,7 +419,7 @@ if __name__ == "__main__":
                 "vgg11", "vgg13", "vgg16", "vgg19", 
                 "vgg11_bn", "vgg13_bn", "vgg16_bn", "vgg19_bn",
                 "densenet121", "InceptionV3", "all"],
-        default="resnet18",
+        default="all",
         help="The name of the neural network.",
     )
     parser.add_argument("--batch-size", type=int, default=1, help="The batch size")
@@ -432,7 +434,7 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=20)
     parser.add_argument("--batches", type=int, default=100)
     parser.add_argument("--profiling", type=bool, default=False)
-    parser.add_argument("--check_acc", type=bool, default=False)
+    parser.add_argument("--check_acc", type=bool, default=True)
     args = parser.parse_args()
 
     if args.network == "all":
