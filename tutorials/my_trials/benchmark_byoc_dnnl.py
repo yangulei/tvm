@@ -38,15 +38,15 @@ network_dict = {"resnet18":"ResNet18_v1b",
                 "densenet121":"DenseNet121",
                 "InceptionV3":"InceptionV3",}
 
-translate_data_dict = {"abcd":"NCHW",
-                "aBcd8b": "NCHW8c",
-                "aBcd16b": "NCHW16c",}
-translate_weight_dict = {
-                "abcd":"OIHW",
-                "Acdb8a": "OHWI8o",
-                "Acdb16a": "OHWI16o",
-                "ABcd8b8a": "OIHW8i8o",
-                "ABcd16b16a": "OIHW16i16o",}
+data_dic = {"a":"N",
+            "b":"C",
+            "c":"H",
+            "d":"W",}
+
+weight_dic = {"a":"O",
+              "b":"I",
+              "c":"H",
+              "d":"W",}
 
 @tvm.instrument.pass_instrument
 class PrintIR:
@@ -73,7 +73,7 @@ class CustomPipeline:
     def transform_function(self, func, mod, ctx):
         self.merge_consecutive_add(func.body)
         if not self.flag_for_merge_add:
-            print("not change graph")
+            # print("not change graph")
             return func
         res = self.rewrite_graph()
         res = relay.Function([self.input], res)
@@ -272,15 +272,43 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     SH, SW = int(SH), int(SW)
 
     res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
-    # print(res)
 
     new_attrs = dict(attrs)
 
     src_df, weight_df, dst_df = res.split(',')
 
-    new_attrs['data_layout'] = translate_data_dict[src_df]
-    new_attrs['kernel_layout'] = translate_weight_dict[weight_df]
-    new_attrs['out_layout'] = translate_data_dict[dst_df]
+    def trans_data(input_data, is_weight=False):
+        dic = data_dic
+        res = input_data
+        if is_weight:
+            dic = weight_dic
+        for key, value in dic.items():
+            if key.upper() in input_data:
+                res = res.replace(key.upper(), value)
+                res = res.replace(key, value.lower())
+            else:
+                res = res.replace(key, value)
+        return res
+
+    new_attrs['data_layout'] = trans_data(src_df, is_weight=False)
+    new_attrs['kernel_layout'] = trans_data(weight_df, is_weight=True)
+    new_attrs['out_layout'] = trans_data(dst_df, is_weight=False)
+    
+
+    blocking_num = int("".join(list(filter(str.isdigit, new_attrs['kernel_layout']))))
+    raw_blocking_num = blocking_num
+    available_blocking_format = [64, 48, 32, 16, 8]
+    if OC%blocking_num!=0:
+        # print(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
+        # print("raw", new_attrs['data_layout'], new_attrs['kernel_layout'], new_attrs['out_layout'])
+        for i in range(len(available_blocking_format)):
+            if OC % available_blocking_format[i] ==0:
+                break
+        blocking_num = available_blocking_format[i]
+        new_attrs['kernel_layout'] = new_attrs['kernel_layout'].replace(str(raw_blocking_num), str(blocking_num))
+    
+        # print(new_attrs['data_layout'], new_attrs['kernel_layout'], new_attrs['out_layout'])
+
     return relay.nn.conv2d(data, weight, **new_attrs)
 
 def transform_image(image):
@@ -333,6 +361,8 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         json, lib, params = relay.build(seq(mod), target=target, params=params)
 
     if check_acc:
+        # print(os.getpid())
+        # input(os.getpid())
         img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
         img_name = "cat.png"
         img_path = download_testdata(img_url, img_name, module="data")
@@ -396,7 +426,7 @@ if __name__ == "__main__":
                 "vgg11", "vgg13", "vgg16", "vgg19", 
                 "vgg11_bn", "vgg13_bn", "vgg16_bn", "vgg19_bn",
                 "densenet121", "InceptionV3", "all"],
-        default="resnet18",
+        default="all",
         help="The name of the neural network.",
     )
     parser.add_argument("--batch-size", type=int, default=1, help="The batch size")
@@ -411,7 +441,7 @@ if __name__ == "__main__":
     parser.add_argument("--warmup", type=int, default=100)
     parser.add_argument("--batches", type=int, default=400)
     parser.add_argument("--profiling", type=bool, default=False)
-    parser.add_argument("--check_acc", type=bool, default=False)
+    parser.add_argument("--check_acc", type=bool, default=True)
     args = parser.parse_args()
 
     if args.network == "all":
