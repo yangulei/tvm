@@ -48,7 +48,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
  public:
   std::map<std::string, tag> layout_dict {
-<<<<<<< HEAD
     {"NCHW", tag::abcd},//tag::abcd
     {"OIHW", tag::abcd},//tag::abcd
     {"NCHW16c", tag::aBcd16b}, //tag::aBcd16b
@@ -58,26 +57,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OIHW8o8i", tag::ABcd8a8b},
     {"OIHW8i8o", tag::ABcd8b8a},
     
-=======
-    // {"NCHW16c", tag::aBcd16b}, //tag::aBcd16b
-    // {"OIHW16o16i", tag::ABcd16a16b},//OIhw16o16i
-    // {"OIHW16i16o", tag::ABcd16b16a},
-    // {"OIHW16o", tag::Abcd16a},//Oihw16o
-    // {"OHWI16o", tag::Acdb16a},
-    // {"NCHW", tag::abcd},//tag::abcd
-    // {"OIHW", tag::abcd},//tag::abcd
-    // {"NCHW8c", tag::aBcd8b}, //tag::aBcd8b
-    // {"OIHW8o8i", tag::ABcd8a8b},
-    // {"OIHW8i8o", tag::ABcd8b8a},
-    // {"OHWI8o", tag::Acdb8a},//tag::Acdb8a
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     {"NHWC", tag::acdb},
     {"OHWI64o", tag::Acdb64a},
     {"OHWI48o", tag::Acdb48a},
     {"OHWI32o", tag::Acdb32a},
     {"OHWI16o", tag::Acdb16a},
     {"OHWI8o", tag::Acdb8a},
-<<<<<<< HEAD
     {"NCHW16c", tag::nChw16c}, 
     {"OIHW16o16i", tag::OIhw16o16i},
     {"OIHW16i16o", tag::OIhw16i16o},
@@ -89,8 +74,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     {"OIHW8o8i", tag::OIhw8o8i},
     {"OIHW8i8o", tag::OIhw8i8o},
     {"OHWI8o", tag::Ohwi8o},//tag::Acdb8a
-=======
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     };
 
   DNNLJSONRuntime(const std::string& symbol_name, const std::string& graph_json,
@@ -218,25 +201,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
     std::vector<std::string> outC = node.GetAttr<std::vector<std::string>>("channels");
 
-<<<<<<< HEAD
-=======
-    if(node.GetAttr<std::vector<std::string>>("out_layout")[0].size()!=0){
-      dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
-    }
-    // std::cout<<"conv"<<std::endl;
-    // std::cout<<"input:";
-    // for (auto i: input_shape){
-    //   std::cout<<i<<" ";
-    // }
-    // std::cout<<std::endl;
-
-    // std::cout<<"weight:";
-    // for (auto i: weight_shape){
-    //   std::cout<<i<<" ";
-    // }
-    // std::cout<<std::endl;
-
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     dnnl::memory::dim N = input_shape[0],       // batch size
         IH = input_shape[1],                    // input height
         IW = input_shape[2],                    // input width
@@ -253,7 +217,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         OH = (IH - KH + PH_L + PH_R) / SH + 1,  // output height
         OW = (IW - KW + PW_L + PW_R) / SW + 1;  // output width
 
-<<<<<<< HEAD
         SW = std::stoi(str_strides[1]);         // weight-wise stride
     
     if (node.GetAttr<std::vector<std::string>>("data_layout")[0].substr(0,4)=="NCHW"){
@@ -263,12 +226,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         if (input_shape.size()==5){
           IC = IC * input_shape[input_shape.size()-1];
         }
-=======
-
-    if(node.GetAttr<std::vector<std::string>>("kernel_layout")[0].size()>4)
-      {
-        OC = weight_shape[0]*weight_shape[weight_shape.size()-1];
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     }
     if (node.GetAttr<std::vector<std::string>>("kernel_layout")[0].substr(0,4)=="OIHW"){
         KH = weight_shape[2];
@@ -301,13 +258,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
        conv_desc = dnnl::convolution_forward::desc(
         dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct, conv_src_md,
         conv_weights_md, conv_dst_md, strides_dims, padding_dims_l, padding_dims_r);
-<<<<<<< HEAD
     }
-=======
-        // std::cout<<"create no bias conv forward"<<std::endl;
-    }
-    // std::cout<<"conv"<<std::endl;
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
 
     // Enable ReLU
     dnnl::primitive_attr attr;
@@ -338,17 +289,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto conv2d_bias_memory = dnnl::memory({bias_dims, dt::f32, tag::x}, engine_);
     if (has_bias) {
       auto bias_entry = node.GetInputs()[2];
-<<<<<<< HEAD
       conv2d_bias_memory = BindDNNLMemory(bias_entry, {bias_dims, dt::f32, tag::x});
     } 
-=======
-      BindDNNLMemory(bias_entry, conv2d_bias_memory);
-    } 
-    // else {
-    //   float bias[OC] = {0};
-    //   write_to_dnnl_memory(bias, conv2d_bias_memory, OC * sizeof(float));
-    // }
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
 
     // Output memory.
     JSONGraphNodeEntry out_entry(nid, 0);
@@ -370,10 +312,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       net_args_.push_back({{DNNL_ARG_SRC, conv2d_src_memory},
                          {DNNL_ARG_WEIGHTS, conv2d_weights_memory},
                          {DNNL_ARG_DST, conv2d_dst_memory}});
-<<<<<<< HEAD
-=======
-      // std::cout<<"conv has no bias"<<std::endl;
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     }
     
   }
@@ -410,10 +348,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       dense_desc = dnnl::inner_product_forward::desc(dnnl::prop_kind::forward_inference, data_md,
                                                         weight_md, dst_md);
     }
-<<<<<<< HEAD
-=======
-    // std::cout<<"dense"<<std::endl;
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     // Enable ReLU
     dnnl::post_ops ops;
     if (has_relu) {
@@ -435,13 +369,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       auto bias_entry = node.GetInputs()[2];
       BindDNNLMemory(bias_entry, bias_memory);
     } 
-<<<<<<< HEAD
-=======
-    // else {
-    //   float bias[OC] = {0};
-    //   write_to_dnnl_memory(bias, bias_memory, OC * sizeof(float));
-    // }
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     JSONGraphNodeEntry out_entry(nid, 0);
     auto dst_memory = BindDNNLMemory(out_entry, dense_prim_desc.dst_desc());
     if (has_bias){
@@ -454,10 +381,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       net_args_.push_back({{DNNL_ARG_SRC, data_memory},
                          {DNNL_ARG_WEIGHTS, weight_memory},
                          {DNNL_ARG_DST, dst_memory}});
-<<<<<<< HEAD
-=======
-      // std::cout<<"dense no bias"<<std::endl;
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     }
     
   }
@@ -475,7 +398,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     auto data_format = tag::acdb;
 
-<<<<<<< HEAD
     if(data_shape.size()>4)
     {IC = IC * data_shape[data_shape.size()-1];
     data_shape[1] = IC;
@@ -485,18 +407,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     data_shape = new_data_shape;
     data_format = tag::aBcd16b;
     }
-=======
-    // if(data_shape.size()>4)
-    // {IC = IC * data_shape[data_shape.size()-1];
-    // data_shape[1] = IC;
-    // dnnl::memory::dims new_data_shape{1,2,3,4};
-    // for(int i=0; i<data_shape.size()-1; i++)
-    // {new_data_shape[i] = data_shape[i];}
-    // data_shape = new_data_shape;
-    // data_format = tag::aBcd16b;
-    // }
-    
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
     float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
     // Memory description.
     dnnl::memory::desc data_md = dnnl::memory::desc({data_shape, dt::f32, data_format});//GenDNNLMemDescByShape(data_shape, dt::f32);
@@ -533,7 +443,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     auto data_entry = node.GetInputs()[0];
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
-<<<<<<< HEAD
     
     if(shape.size()>4)
     {auto IC = shape[1] * shape[shape.size()-1];}
@@ -551,20 +460,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       shape = new_data_shape;
       data_md = dnnl::memory::desc({shape, dt::f32, data_format});
     }
-=======
-
-    auto tmp = shape[shape.size()-1];
-    shape[shape.size()-1] = shape[1];
-    shape[1] = tmp;
-
-    // std::cout<<"relu "<<std::endl;
-    //   for(auto i: shape){
-    //     std::cout<<i<<" ";
-    //   }
-    //   std::cout<<std::endl;
-
-    dnnl::memory::desc data_md = dnnl::memory::desc({shape, dt::f32, tag::acdb});//GenDNNLMemDescByShape(shape, dt::f32);
->>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
 
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);

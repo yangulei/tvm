@@ -274,6 +274,9 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     new_attrs['kernel_layout'] = trans_data(weight_df, is_weight=True)
     new_attrs['out_layout'] = trans_data(dst_df, is_weight=False)
 
+    # VC = int("".join(list(filter(str.isdigit, new_attrs['kernel_layout']))))
+    # if OC%VC!=0:
+    #     return relay.nn.conv2d(data, weight, **attrs)
     return relay.nn.conv2d(data, weight, **new_attrs)
 
 def transform_image(image):
@@ -308,6 +311,8 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             relay.transform.FoldConstant(),
             # tvm.transform.PrintIR(),
             
+            relay.transform.Legalize(),
+            # tvm.transform.PrintIR(),
             relay.transform.AlterOpLayout(),
             relay.transform.FoldConstant(),
             # tvm.transform.PrintIR(),
