@@ -196,6 +196,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       dst_df = layout_dict[node.GetAttr<std::vector<std::string>>("out_layout")[0]];
     }
     // std::cout<<"conv"<<std::endl;
+    // std::cout<<node.GetAttr<std::vector<std::string>>("data_layout")[0]<<" "<<node.GetAttr<std::vector<std::string>>("kernel_layout")[0]<<std::endl;
     // std::cout<<"input:";
     // for (auto i: input_shape){
     //   std::cout<<i<<" ";

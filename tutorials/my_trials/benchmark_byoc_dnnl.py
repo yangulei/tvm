@@ -73,7 +73,7 @@ class CustomPipeline:
     def transform_function(self, func, mod, ctx):
         self.merge_consecutive_add(func.body)
         if not self.flag_for_merge_add:
-            # print("not change graph")
+            print("no consecutive add")
             return func
         res = self.rewrite_graph()
         res = relay.Function([self.input], res)
@@ -244,12 +244,11 @@ class CustomPipeline:
         else:
             return False
 
-@relay.op.register_alter_op_layout("nn.conv2d", level=114)
-def alter_conv2d(attrs, inputs, tinfos, out_type):
+@relay.op.register_legalize("nn.conv2d", level=114)
+def legalize_conv2d(attrs, inputs, types):
     data, weight = inputs
-    # global cnt_conv_num
-    # cnt_conv_num += 1
-    # print(cnt_conv_num)
+    new_attrs = dict(attrs)
+
     def get_shape(tensor):
         if 'Var' in str(type(tensor)):
             return tensor.type_annotation.concrete_shape
@@ -260,19 +259,64 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
         else:
             return (-1, -1, -1, -1)
     
+    N, IC, IH, IW = get_shape(data)
+    OC, IC, KH, KW = get_shape(weight)
+    N, _, OH, OW = get_shape(types[-1])
+    PH_L, PW_L, PH_R, PW_R = attrs.get_int_tuple("padding")
+    SH, SW = attrs.get_int_tuple("strides")
+    dilation = attrs.get_int_tuple("dilation")
+
+    res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
+    # print(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
+    src_df, weight_df, dst_df = res.split(',')
+
+    VC = int("".join(list(filter(str.isdigit, weight_df))))
+    OC = attrs["channels"]
+    new_OC = OC
+    if OC % VC != 0:
+        print("legalized")
+        new_OC = ((OC + VC) // VC) * VC
+        diff = new_OC - OC
+        pad_width = ((0, diff), (0, 0), (0, 0), (0, 0))
+        weight = relay.nn.pad(weight, pad_width=pad_width)
+        new_attrs["channels"] = new_OC
+        out = relay.nn.conv2d(data, weight, **new_attrs)
+        original_out_shape = [x.value for x in types[-1].shape]
+        out = relay.strided_slice(out, begin=[0, 0, 0, 0], end=original_out_shape)
+    else:
+        out = relay.nn.conv2d(data, weight, **attrs)
+
+    return out
+
+
+@relay.op.register_alter_op_layout("nn.conv2d", level=114)
+def alter_conv2d(attrs, inputs, tinfos, out_type):
+    data, weight = inputs
+    def get_shape(tensor):
+        if 'Var' in str(type(tensor)):
+            return tensor.type_annotation.concrete_shape
+        elif 'Constant' in str(type(tensor)):
+            return tensor.data.shape
+        elif 'TensorType' in str(type(tensor)):
+            return tensor.concrete_shape
+        else:
+            if "pad" in tensor.op.name:
+                return tensor.type_args[0].concrete_shape
+            return (-1, -1, -1, -1)
+    
     if len(get_shape(data))>4 or len(get_shape(weight))>4 or len(get_shape(out_type))>4:
         return relay.nn.conv2d(data, weight, **attrs)
 
     N, IC, IH, IW = get_shape(data)
     OC, IC, KH, KW = get_shape(weight)
-    N, _, OH, OW = get_shape(out_type)
-    PH_L, PW_L, PH_R, PW_R = attrs.padding
-    PH_L, PH_R, PW_L, PW_R = int(PH_L), int(PH_R), int(PW_L), int(PW_R)
-    SH, SW = attrs.strides
-    SH, SW = int(SH), int(SW)
+    N, OC, OH, OW = get_shape(out_type)
+    PH_L, PW_L, PH_R, PW_R = attrs.get_int_tuple("padding")
+    SH, SW = attrs.get_int_tuple("strides")
+    dilation = attrs.get_int_tuple("dilation")
+
+    # print(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
 
     res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
-
     new_attrs = dict(attrs)
 
     src_df, weight_df, dst_df = res.split(',')
@@ -293,22 +337,10 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     new_attrs['data_layout'] = trans_data(src_df, is_weight=False)
     new_attrs['kernel_layout'] = trans_data(weight_df, is_weight=True)
     new_attrs['out_layout'] = trans_data(dst_df, is_weight=False)
-    
 
-    blocking_num = int("".join(list(filter(str.isdigit, new_attrs['kernel_layout']))))
-    raw_blocking_num = blocking_num
-    available_blocking_format = [64, 48, 32, 16, 8]
-    if OC%blocking_num!=0:
-        # print(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
-        # print("raw", new_attrs['data_layout'], new_attrs['kernel_layout'], new_attrs['out_layout'])
-        for i in range(len(available_blocking_format)):
-            if OC % available_blocking_format[i] ==0:
-                break
-        blocking_num = available_blocking_format[i]
-        new_attrs['kernel_layout'] = new_attrs['kernel_layout'].replace(str(raw_blocking_num), str(blocking_num))
-    
-        # print(new_attrs['data_layout'], new_attrs['kernel_layout'], new_attrs['out_layout'])
-
+    # VC = int("".join(list(filter(str.isdigit, new_attrs['kernel_layout']))))
+    # if OC%VC!=0:
+    #     return relay.nn.conv2d(data, weight, **attrs)
     return relay.nn.conv2d(data, weight, **new_attrs)
 
 def transform_image(image):
@@ -343,10 +375,13 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
             relay.transform.FoldConstant(),
             # tvm.transform.PrintIR(),
             
+            relay.transform.Legalize(),
+            # tvm.transform.PrintIR(),
             relay.transform.AlterOpLayout(),
             # tvm.transform.PrintIR(),
 
             relay.transform.MergeComposite(pattern_table()),
+            # tvm.transform.PrintIR(),
             relay.transform.AnnotateTarget("dnnl"),
             relay.transform.MergeCompilerRegions(),
             relay.transform.PartitionGraph(),
