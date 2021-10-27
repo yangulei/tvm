@@ -143,6 +143,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
           BatchNorm(nid);
         } else if ("nn.relu" == op_name) {
           Relu(nid);
+        } else if ("layout_transform" == op_name) {
+          Reorder(nid);
         } else if ("add" == op_name) {
           Binary(nid, dnnl::algorithm::binary_add);
         } else if ("multiply" == op_name) {
@@ -164,10 +166,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   dnnl::memory BindDNNLMemory(const JSONGraphNodeEntry& entry, dnnl::memory::desc mem_desc,
                               size_t offset = 0) {
     auto eid = EntryID(entry);
+    // std::cout<<"eid short: "<<eid<<std::endl;
     if (entry_out_mem_.count(eid) == 0) {
       return BindDNNLMemory(entry, dnnl::memory(mem_desc, engine_), offset);
     }
-    // std::cout<<"eid short: "<<eid<<std::endl;
+    
     return entry_out_mem_[eid].first;
   }
 
