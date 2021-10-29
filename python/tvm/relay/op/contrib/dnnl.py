@@ -71,7 +71,7 @@ _register_external_op_helper("nn.relu")
 
 # _register_external_op_helper("layout_transform")
 
-_register_external_op_helper("layout_transform")
+# _register_external_op_helper("layout_transform")
 
 _register_external_op_helper("concatenate")
 _register_external_op_helper("nn.max_pool2d")
