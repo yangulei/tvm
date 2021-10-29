@@ -274,6 +274,8 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     new_attrs['kernel_layout'] = trans_data(weight_df, is_weight=True)
     new_attrs['out_layout'] = trans_data(dst_df, is_weight=False)
 
+    # if 
+
     return relay.nn.conv2d(data, weight, **new_attrs)
 
 def transform_image(image):
