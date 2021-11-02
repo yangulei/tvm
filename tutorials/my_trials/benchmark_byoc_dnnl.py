@@ -274,8 +274,6 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     new_attrs['kernel_layout'] = trans_data(weight_df, is_weight=True)
     new_attrs['out_layout'] = trans_data(dst_df, is_weight=False)
 
-    # if 
-
     return relay.nn.conv2d(data, weight, **new_attrs)
 
 def transform_image(image):
@@ -330,8 +328,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         json, lib, params = relay.build(seq(mod), target=target, params=params)
 
     if check_acc:
-        # print(os.getpid())
-        # input(os.getpid())
         img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
         img_name = "cat.png"
         img_path = download_testdata(img_url, img_name, module="data")
@@ -409,8 +405,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--dtype", type=str, default="float32", help="The data type.")
     
-    parser.add_argument("--warmup", type=int, default=20)
-    parser.add_argument("--batches", type=int, default=100)
+    parser.add_argument("--warmup", type=int, default=2)
+    parser.add_argument("--batches", type=int, default=10)
     parser.add_argument("--profiling", type=bool, default=False)
     parser.add_argument("--check_acc", type=bool, default=True)
     args = parser.parse_args()

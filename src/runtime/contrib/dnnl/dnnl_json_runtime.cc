@@ -105,8 +105,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     // Invoke the engine through intepreting the stream.
     // std::cout<<"net_.size():"<<net_.size()<<std::endl;
     for (size_t i = 0; i < net_.size(); ++i) {
-      // std::cout<<"run:"<<i<<std::endl;
       net_.at(i).execute(stream_, net_args_.at(i));
+      // std::cout<<"run:"<<i<<std::endl;
     }
     stream_.wait();
   }
@@ -143,8 +143,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
           BatchNorm(nid);
         } else if ("nn.relu" == op_name) {
           Relu(nid);
-        } else if ("layout_transform" == op_name) {
-          Reorder(nid);
         } else if ("add" == op_name) {
           Binary(nid, dnnl::algorithm::binary_add);
         } else if ("multiply" == op_name) {
@@ -166,11 +164,10 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   dnnl::memory BindDNNLMemory(const JSONGraphNodeEntry& entry, dnnl::memory::desc mem_desc,
                               size_t offset = 0) {
     auto eid = EntryID(entry);
-    // std::cout<<"eid short: "<<eid<<std::endl;
     if (entry_out_mem_.count(eid) == 0) {
       return BindDNNLMemory(entry, dnnl::memory(mem_desc, engine_), offset);
     }
-    
+    // std::cout<<"eid short: "<<eid<<std::endl;
     return entry_out_mem_[eid].first;
   }
 
@@ -178,7 +175,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   dnnl::memory BindDNNLMemory(const JSONGraphNodeEntry& entry, dnnl::memory mem,
                               size_t offset = 0) {
     auto eid = EntryID(entry);
-    // std::cout<<"eid long: "<<eid<<std::endl;
     ICHECK_EQ(entry_out_mem_.count(eid), 0);
 
     // TODO(@comanic): Support other data types (i.e., int8).
@@ -208,7 +204,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         IH = input_shape[1],                    // input height
         IW = input_shape[2],                    // input width
         IC = input_shape[3],                    // input channels
-        OC = weight_shape[0],                   // output channels
+        OC = std::stoi(outC[0]),                // output channels
         KH = weight_shape[1],                   // weight height
         KW = weight_shape[2],                   // weight width
         PH_L = std::stoi(str_padding[0]),       // height padding: left
@@ -301,7 +297,6 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     if (has_sum) {
       auto dst_entry = node.GetInputs()[3];
       conv2d_dst_memory = BindDNNLMemory(dst_entry, conv2d_prim_desc.dst_desc());
-      // std::cout<<"conv sum"<<std::endl;
     }
       BindDNNLMemory(out_entry, conv2d_dst_memory);
     // Bind memory buffers.
@@ -399,7 +394,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims data_shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
     dnnl::memory::dim IC = data_shape[1];
 
-    auto data_format = tag::acdb;
+    auto data_format = tag::abcd;
 
     if(data_shape.size()>4)
     {IC = IC * data_shape[data_shape.size()-1];
@@ -445,6 +440,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto node = nodes_[nid];
 
     auto data_entry = node.GetInputs()[0];
+    auto tmp = nodes_[data_entry.id_];
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
     
     if(shape.size()>4)
@@ -534,6 +530,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
       if(data_shape.size()>4)
     {
@@ -579,6 +576,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         //   std::cout<<i<<" ";
         // }
         // std::cout<<std::endl;
+=======
+>>>>>>> 5b49bc893... merge support for onednn1.7 and 2.4
         data_mds.push_back(data_md);
         data_memories.push_back(BindDNNLMemory(entry, data_md));
       }
@@ -586,9 +585,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     
     auto concat_prim_desc = dnnl::concat::primitive_desc(axis, data_mds, engine_);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     // std::cout<<"concat"<<std::endl;
 >>>>>>> 2ad741f94... 10/11 check resnet vgg-bn inceptionv3 densenet121 acc (for densenet disbale concat max/avgpool)
+=======
+>>>>>>> 5b49bc893... merge support for onednn1.7 and 2.4
     auto concat = dnnl::concat(concat_prim_desc);
     net_.push_back(concat);
     
@@ -620,9 +622,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto src_df = layout_dict[node.GetAttr<std::vector<std::string>>("layout")[0]];
     auto dst_df = src_df;
     dnnl::memory::dim N = input_shape[0],
-      IH = input_shape[1],
-      IW = input_shape[2],
-      IC = input_shape[3],
+      IC = input_shape[1],
+      IH = input_shape[2],
+      IW = input_shape[3],
       KH = pool_size0,
       KW = pool_size1,
       PW_L = std::stoi(str_padding[1]),
@@ -633,12 +635,18 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       SW = std::stoi(str_strides[1]),
       DH = dilation0,
       DW = dilation1;
+<<<<<<< HEAD
 
 <<<<<<< HEAD
+=======
+      
+
+>>>>>>> 5b49bc893... merge support for onednn1.7 and 2.4
     if(node.GetAttr<std::vector<std::string>>("layout")[0].size()>4)
       {
         IC = input_shape[1]*input_shape[4];                    // input channels
     }
+<<<<<<< HEAD
 
     if(node.GetAttr<std::vector<std::string>>("layout")[0]=="NHWC")
       {
@@ -652,6 +660,19 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     
 =======
 >>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
+=======
+
+    if(node.GetAttr<std::vector<std::string>>("layout")[0]=="NHWC")
+      {
+        IC = input_shape[3];
+        IH = input_shape[1];
+        IW = input_shape[2];
+    }
+
+    dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,
+                      OW = (IW - KW + PW_L + PW_R) / SW + 1;
+    
+>>>>>>> 5b49bc893... merge support for onednn1.7 and 2.4
     // Memory shapes.
     dnnl::memory::dims src_dims = {N, IC, IH, IW};
     dnnl::memory::dims kernel_dims = {KH, KW}; // modified
@@ -669,7 +690,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     // std::cout<<std::endl;
     // Memory descriptions.
     auto pool_src_md = dnnl::memory::desc(src_dims, dt::f32, src_df);
-    auto pool_dst_md = dnnl::memory::desc(dst_dims, dt::f32, tag::any);
+    auto pool_dst_md = dnnl::memory::desc(dst_dims, dt::f32, dst_df);
 
     // MaxPool2d description.
     // prop_kind, alg_kind, src_desc, dst_desc,
@@ -720,10 +741,14 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto alg_kind = count_include_pad ?
       dnnl::algorithm::pooling_avg_include_padding :
       dnnl::algorithm::pooling_avg_exclude_padding ;
+<<<<<<< HEAD
+=======
+      
+>>>>>>> 5b49bc893... merge support for onednn1.7 and 2.4
     dnnl::memory::dim N = input_shape[0],
-      IH = input_shape[1],
+      IC = input_shape[1],
+      IH = input_shape[2],
       IW = input_shape[2],
-      IC = input_shape[3],
       KH = pool_size0,
       KW = pool_size1,
       PH_L = std::stoi(str_padding[1]),
@@ -735,12 +760,15 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       DH = dilation0,
       DW = dilation1;
     
-    // if(node.GetAttr<std::vector<std::string>>("layout")[0].size()>4)
-    //   {
-    //     IC = input_shape[1]*input_shape[4];                    // input channels
-    // }
+    if(node.GetAttr<std::vector<std::string>>("layout")[0].size()>4)
+      {
+        IC = input_shape[1]*input_shape[4];                    // input channels
+    }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 5b49bc893... merge support for onednn1.7 and 2.4
     if(node.GetAttr<std::vector<std::string>>("layout")[0]=="NHWC")
       {
         IC = input_shape[3];
@@ -751,9 +779,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,
                       OW = (IW - KW + PW_L + PW_R) / SW + 1;
+<<<<<<< HEAD
 =======
     // std::cout<<"avgpool"<<std::endl;
 >>>>>>> e93f86c0a... 10/18 enable models with the latest onednn (v2.4)
+=======
+>>>>>>> 5b49bc893... merge support for onednn1.7 and 2.4
 
     // Memory shapes.
     dnnl::memory::dims src_dims = {N, IC, IH, IW};
