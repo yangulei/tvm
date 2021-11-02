@@ -269,8 +269,6 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     SH, SW = attrs.get_int_tuple("strides")
     dilation = attrs.get_int_tuple("dilation")
 
-    # print(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
-
     res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
     new_attrs = dict(attrs)
 
@@ -281,19 +279,18 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
         res = input_data
         if is_weight:
             dic = weight_dic
+                
         for key, value in dic.items():
             if key.upper() in input_data:
-                res = res.replace(key.upper(), value)
-                res = res.replace(key, value.lower())
+                res = res.replace(key.upper(), value, 1)
+                res = res.replace(key, value.lower(), 1)
             else:
-                res = res.replace(key, value)
+                res = res.replace(key, value, 1)
         return res
 
     new_attrs['data_layout'] = trans_data(src_df, is_weight=False)
     new_attrs['kernel_layout'] = trans_data(weight_df, is_weight=True)
     new_attrs['out_layout'] = trans_data(dst_df, is_weight=False)
-
-    # if 
 
     return relay.nn.conv2d(data, weight, **new_attrs)
 
@@ -349,8 +346,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         json, lib, params = relay.build(seq(mod), target=target, params=params)
 
     if check_acc:
-        # print(os.getpid())
-        # input(os.getpid())
         img_url = "https://github.com/dmlc/mxnet.js/blob/main/data/cat.png?raw=true"
         img_name = "cat.png"
         img_path = download_testdata(img_url, img_name, module="data")
@@ -428,8 +423,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--dtype", type=str, default="float32", help="The data type.")
     
-    parser.add_argument("--warmup", type=int, default=20)
-    parser.add_argument("--batches", type=int, default=100)
+    parser.add_argument("--warmup", type=int, default=2)
+    parser.add_argument("--batches", type=int, default=10)
     parser.add_argument("--profiling", type=bool, default=False)
     parser.add_argument("--check_acc", type=bool, default=True)
     args = parser.parse_args()
