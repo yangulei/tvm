@@ -36,7 +36,9 @@ network_dict = {"resnet18":"ResNet18_v1b",
                 "vgg16_bn":"VGG16_bn",
                 "vgg19_bn":"VGG19_bn",
                 "densenet121":"DenseNet121",
-                "InceptionV3":"InceptionV3",}
+                "InceptionV3":"InceptionV3",
+                "MobileNet1.0":"MobileNet1.0",
+                "i3d_resnet50_v1_kinetics400":"i3d_resnet50_v1_kinetics400"}
 
 data_dic = {"a":"N",
             "b":"C",
@@ -46,7 +48,8 @@ data_dic = {"a":"N",
 weight_dic = {"a":"O",
               "b":"I",
               "c":"H",
-              "d":"W",}
+              "d":"W",
+              "e":"G"}
 
 translate_dict = {"abcd":"NCHW",
                 "Acdb8a": "OHWI8o",
@@ -264,9 +267,6 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
             if "pad" in tensor.op.name:
                 return tensor.type_args[0].concrete_shape
             return (-1, -1, -1, -1)
-    
-    if len(get_shape(data))>4 or len(get_shape(weight))>4 or len(get_shape(out_type))>4:
-        return relay.nn.conv2d(data, weight, **attrs)
 
     N, IC, IH, IW = get_shape(data)
     OC, IC, KH, KW = get_shape(weight)
@@ -274,9 +274,17 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     PH_L, PW_L, PH_R, PW_R = attrs.get_int_tuple("padding")
     SH, SW = attrs.get_int_tuple("strides")
     dilation = attrs.get_int_tuple("dilation")
-
-    res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW)
+    G = int(attrs.groups)
     new_attrs = dict(attrs)
+
+    if G>1: # for mobilenet
+        IC = IC * G
+        new_attrs['data_layout'] = "NCHW"
+        new_attrs['kernel_layout'] = "OIHW"
+        new_attrs['out_layout'] = "NCHW"
+        return relay.nn.conv2d(data, weight, **new_attrs)
+
+    res = relay.query_layout.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW,G)
 
     src_df, weight_df, dst_df = res.split(',')
 
@@ -312,6 +320,8 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
     input_shape = (batch_size, 3, 224, 224)
     if network=="InceptionV3":
         input_shape = (batch_size, 3, 300, 300)
+    if network=="i3d_resnet50_v1_kinetics400":
+        input_shape = (batch_size, 3, 20, 224, 224)
     
     block = gluoncv.model_zoo.get_model(network_dict[network], pretrained=True)
     mod, params = relay.frontend.from_mxnet(
@@ -359,6 +369,8 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         sample = transform_image(image)
         if batch_size>1:
             sample = np.random.rand(input_shape[0], input_shape[1],input_shape[2], input_shape[3])
+        if network=="i3d_resnet50_v1_kinetics400":
+            sample = np.random.rand(input_shape[0], input_shape[1],input_shape[2], input_shape[3], input_shape[4])
 
         import tvm.contrib.graph_executor as graph_executor
         rt_mod = graph_executor.create(json, lib, ctx)#, dump_root="/home/zy/tvm/tutorials/experiment_res/")#Create a runtime executor module given a graph and module.
@@ -409,6 +421,7 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         print("{}: with_fuse_fps: {:.4f} fps".format(network, with_fuse_fps))
         
 if __name__ == "__main__":
+    # os.environ["TVM_LOG_DEBUG"]="DEFAULT=1;ir/transform.cc=1;relay/ir/transform.cc=1"
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--network",
@@ -416,7 +429,7 @@ if __name__ == "__main__":
         choices=["resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
                 "vgg11", "vgg13", "vgg16", "vgg19", 
                 "vgg11_bn", "vgg13_bn", "vgg16_bn", "vgg19_bn",
-                "densenet121", "InceptionV3", "all"],
+                "densenet121", "InceptionV3", "MobileNet1.0", "i3d_resnet50_v1_kinetics400", "all"],
         default="all",
         help="The name of the neural network.",
     )
@@ -424,15 +437,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target",
         type=str,
-        default="llvm",
+        default="llvm -mcpu=cascadelake -model=platinum-8280",
         help="The compilation target.",
     )
     parser.add_argument("--dtype", type=str, default="float32", help="The data type.")
     
-    parser.add_argument("--warmup", type=int, default=2)
-    parser.add_argument("--batches", type=int, default=10)
+    parser.add_argument("--warmup", type=int, default=20)
+    parser.add_argument("--batches", type=int, default=100)
     parser.add_argument("--profiling", type=bool, default=False)
-    parser.add_argument("--check_acc", type=bool, default=True)
+    parser.add_argument("--check_acc", type=bool, default=False)
     args = parser.parse_args()
 
     if args.network == "all":
