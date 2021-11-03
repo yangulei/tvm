@@ -249,7 +249,3 @@ conda/pkg
 # logs
 *.txt
 *.xlsx
-<<<<<<< HEAD
-=======
-*.cover
->>>>>>> 123ace26a... clean_layout_propagation
