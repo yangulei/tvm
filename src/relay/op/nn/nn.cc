@@ -744,15 +744,8 @@ bool BatchNormRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
   int axis = (param->axis != -1) ? param->axis : data->shape.size() - 1;
   
   auto axis_size = data->shape[axis];
-<<<<<<< HEAD
   if(data->shape.size()>4)
   {axis_size = data->shape[data->shape.size()-1] * axis_size;}
-=======
-  // std::cout<<axis_size<<std::endl;
-  if(data->shape.size()>4)
-  {axis_size = data->shape[data->shape.size()-1] * axis_size;}
-  // std::cout<<axis_size<<std::endl;
->>>>>>> 70ba937da... enable correct layout transform for conv2d bn relu
   // if we are using beta and gamma, they need to be of shape (dim,)
   reporter->Assign(types[1], TensorType({axis_size}, data->dtype));
   reporter->Assign(types[2], TensorType({axis_size}, data->dtype));
