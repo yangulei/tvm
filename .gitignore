@@ -245,22 +245,3 @@ conda/pkg
 .tvm_test_data
 .dgl
 .caffe2
-
-# Local docs build
-_docs/
-jvm/target
-.config/configstore/
-
-# logs
-*.txt
-*.xlsx
-*.cover
-txt2excel_profile.py
-txt2excel.py
-process_txt.py
-cmp_txt.py
-benchmark_onednn_dnnl.py
-benchmark_onednn.py
-benchmark_byoc_raw.py
-byoc_layout_propagation.py
-
