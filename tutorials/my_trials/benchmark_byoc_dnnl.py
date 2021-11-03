@@ -48,33 +48,6 @@ weight_dic = {"a":"O",
               "c":"H",
               "d":"W",}
 
-import time
-import mxnet as mx
-import gluoncv
-
-import warnings
-warnings.filterwarnings("ignore")
-import tvm
-from tvm.relay.op.contrib.dnnl import *
-from tvm import relay
-
-import numpy as np
-import os
-from tvm.contrib import utils
-from tvm.relay.build_module import bind_params_by_name
-from tvm.contrib.download import download_testdata
-from PIL import Image
-from matplotlib import pyplot as plt
-# import tvm.contrib.graph_executor as graph_executor
-from tvm.contrib.debugger import debug_executor as graph_executor
-model_dict = {'resnet50_v1': resnet}
-
-translate_dict = {"abcd":"NCHW",
-                "Acdb8a": "OHWI8o",
-                "Acdb16a": "OHWI16o",
-                "ABcd8b8a": "OIHW8i8o",
-                "ABcd16b16a": "OIHW16i16o",}
-
 @tvm.instrument.pass_instrument
 class PrintIR:
     """Print the name of the pass, the IR, only before passes execute."""
@@ -220,10 +193,55 @@ class CustomPipeline:
         except:
             return False
 
+    def check_constant(self, node):
+        try:
+            return 'Constant' in str(type(node))
+        except:
+            return False
+
     def check_Var(self, node):
         try:
             return 'Var' in str(type(node))
         except:
+            return False
+
+    def get_op(self, node, pre_node=None, arg_lst = None):
+        if 'Tuple' in str(type(node)):
+            return relay.Tuple(arg_lst)
+
+        if arg_lst is not None:
+            args = arg_lst
+        else:
+            args = []
+            for a in node.args:
+                if 'Call' in str(type(a)):
+                    args.append(pre_node)
+                else:
+                    args.append(a)
+
+        if node.op.name=='nn.conv2d':
+            return relay.nn.conv2d(args[0], args[1], **node.attrs)
+        elif node.op.name=='nn.relu':
+            return relay.nn.relu(args[0])
+        elif node.op.name=='multiply':
+            return relay.multiply(args[0], args[1])
+        elif node.op.name=='add':
+            return relay.add(args[0], args[1])
+        elif node.op.name=='concatenate':
+            return relay.concatenate(pre_node, **node.attrs)
+        elif node.op.name=='nn.max_pool2d':
+            return relay.nn.max_pool2d(args[0], **node.attrs)
+        elif node.op.name=='nn.avg_pool2d':
+            return relay.nn.avg_pool2d(args[0], **node.attrs)
+        elif node.op.name=='nn.global_avg_pool2d':
+            return relay.nn.global_avg_pool2d(args[0], **node.attrs)
+        elif node.op.name=='nn.batch_flatten':
+            return relay.nn.batch_flatten(args[0])
+        elif node.op.name=='nn.dense':
+            return relay.nn.dense(args[0], args[1], **node.attrs)
+        elif node.op.name=='nn.dropout':
+            return relay.nn.dropout(args[0], **node.attrs)
+        else:
             return False
 
 @relay.op.register_alter_op_layout("nn.conv2d", level=114)
@@ -344,9 +362,6 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         out = rt_mod.run()
         sample_for_mxnet = mx.ndarray.array(sample)
         mxnet_output = block(sample_for_mxnet)
-        rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
-        rt_mod.set_input(**params)
-        rt_mod.run()
         tvm_output = rt_mod.get_output(0)
         # print("mxnet_output:{}".format(mxnet_output))
         # print("tvm_output:{}".format(tvm_output))
@@ -362,6 +377,7 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         total_time_lst = []
         for i in range(batches+warmup):
             tmp = rt_mod.profile()
+
             gap = tmp.calls[1]["Duration (us)"].microseconds
             #percent = tmp.calls[0]["Percent"].percent
             reorder = tmp.calls[2]["Duration (us)"].microseconds
@@ -380,10 +396,13 @@ def benchmark(network, batch_size, profiling=False, check_acc=False, warmup=100,
         sample = np.random.rand(input_shape[0], input_shape[1],input_shape[2], input_shape[3])
         rt_mod.set_input("data", tvm.nd.array(sample.astype("float32")))
         rt_mod.set_input(**params)
-
+        for i in range(batches+warmup):
+            if i == warmup:
+                tic = time.time()
+            out = rt_mod.run()
         with_fuse_fps = batches * batch_size / (time.time() - tic)
         print("{}: with_fuse_fps: {:.4f} fps".format(network, with_fuse_fps))
-
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -405,10 +424,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--dtype", type=str, default="float32", help="The data type.")
     
-    parser.add_argument("--warmup", type=int, default=2)
-    parser.add_argument("--batches", type=int, default=10)
+    parser.add_argument("--warmup", type=int, default=20)
+    parser.add_argument("--batches", type=int, default=100)
     parser.add_argument("--profiling", type=bool, default=False)
-    parser.add_argument("--check_acc", type=bool, default=True)
+    parser.add_argument("--check_acc", type=bool, default=False)
     args = parser.parse_args()
 
     if args.network == "all":
@@ -425,5 +444,3 @@ if __name__ == "__main__":
     for network in networks:
         benchmark(network, args.batch_size, profiling=args.profiling,check_acc=args.check_acc,\
         warmup=args.warmup, batches=args.batches, dtype=args.dtype, target=args.target)
-
-
