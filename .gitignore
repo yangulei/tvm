@@ -255,3 +255,7 @@ jvm/target
 *.txt
 *.xlsx
 *.cover
+txt2excel_profile.py
+txt2excel.py
+process_txt.py
+cmp_txt.py
