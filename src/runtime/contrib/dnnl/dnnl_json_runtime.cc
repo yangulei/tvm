@@ -162,13 +162,33 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     auto eid = EntryID(entry);
     ICHECK_EQ(entry_out_mem_.count(eid), 0);
 
-    // TODO(@comanic): Support other data types (i.e., int8).
-    auto data_node = nodes_[entry.id_];
-    auto dltype = data_node.GetOpDataType()[entry.index_];
-    ICHECK_EQ(dltype.bits, 32);
-
     entry_out_mem_[eid] = {mem, offset};
     return entry_out_mem_[eid].first;
+  }
+
+  dt dtype_dl2dnnl(DLDataType dltype) {
+    dt dnnl_type = dt::undef;
+    if (dltype.code == DataType::TypeCode::kFloat) {
+      if (dltype.bits == 16) {
+        dnnl_type = dt::f16;
+      } else if (dltype.bits == 32) {
+        dnnl_type = dt::f32;
+      }
+    } else if (dltype.code == DataType::TypeCode::kBFloat && dltype.bits == 16) {
+      dnnl_type = dt::bf16;
+    } else if (dltype.code == DataType::TypeCode::kInt) {
+      if (dltype.bits == 8) {
+        dnnl_type = dt::s8;
+      } else if (dltype.bits == 32) {
+        dnnl_type = dt::s32;
+      }
+    } else if (dltype.code == DataType::TypeCode::kUInt && dltype.bits == 8) {
+      dnnl_type = dt::u8;
+    }
+    if (dnnl_type == dt::undef) {
+      LOG_ERROR << "unsupported datatype: code=" << dltype.code << ", bits=" << dltype.bits;
+    }
+    return dnnl_type;
   }
 
   void Conv2d(const size_t& nid, const bool has_relu = false, const bool has_bias = false, const bool has_sum = false) {
@@ -228,10 +248,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims padding_dims_r = {PH_R, PW_R};
 
     // Memory descriptions.
-    auto conv_src_md = dnnl::memory::desc(src_dims, dt::f32, src_df);
-    auto conv_weights_md = dnnl::memory::desc(weights_dims, dt::f32, weight_df);
-    auto conv_bias_md = dnnl::memory::desc(bias_dims, dt::f32, tag::x);
-    auto conv_dst_md = dnnl::memory::desc(dst_dims, dt::f32, tag::any);
+    dt dtype = dtype_dl2dnnl(nodes_[data_entry.id_].GetOpDataType()[data_entry.index_]);
+    auto conv_src_md = dnnl::memory::desc(src_dims, dtype, src_df);
+    auto conv_weights_md = dnnl::memory::desc(weights_dims, dtype, weight_df);
+    auto conv_bias_md = dnnl::memory::desc(bias_dims, dtype, tag::x);
+    auto conv_dst_md = dnnl::memory::desc(dst_dims, dtype, tag::any);
 
     // Covn2d description.
     auto conv_desc = has_bias? 
@@ -320,10 +341,11 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims out_dims = {B, OC};
 
     // Memory descriptions.
-    auto data_md = dnnl::memory::desc({data_dims, dt::f32, tag::nc});
-    auto weight_md = dnnl::memory::desc({weight_dims, dt::f32, tag::nc});
-    auto bias_md = dnnl::memory::desc({bias_dims, dt::f32, tag::x});
-    auto dst_md = dnnl::memory::desc({out_dims, dt::f32, tag::nc});
+    dt dtype = dtype_dl2dnnl(nodes_[data_entry.id_].GetOpDataType()[data_entry.index_]);
+    auto data_md = dnnl::memory::desc({data_dims, dtype, tag::nc});
+    auto weight_md = dnnl::memory::desc({weight_dims, dtype, tag::nc});
+    auto bias_md = dnnl::memory::desc({bias_dims, dtype, tag::x});
+    auto dst_md = dnnl::memory::desc({out_dims, dtype, tag::nc});
 
     // Dense description.
     auto dense_desc = has_bias? 
@@ -383,7 +405,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     float epsilon = std::stof(node.GetAttr<std::vector<std::string>>("epsilon")[0]);
 
     // Memory description.
-    dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
+    dt dtype = dtype_dl2dnnl(nodes_[data_entry.id_].GetOpDataType()[data_entry.index_]);
+    dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dtype);
 
     // BN description.
     auto bn_desc = dnnl::batch_normalization_forward::desc(
@@ -417,7 +440,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     auto data_entry = node.GetInputs()[0];
     dnnl::memory::dims shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
-    dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dt::f32);
+    dt dtype = dtype_dl2dnnl(nodes_[data_entry.id_].GetOpDataType()[data_entry.index_]);
+    dnnl::memory::desc data_md = GenDNNLMemDescByShape(shape, dtype);
 
     auto relu_desc = dnnl::eltwise_forward::desc(dnnl::prop_kind::forward_inference,
                                                  dnnl::algorithm::eltwise_relu, data_md, 0);
@@ -445,7 +469,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     ICHECK_EQ(node.GetInputs().size(), 2U);
     for (auto entry : node.GetInputs()) {
       auto data_shape = nodes_[entry.id_].GetOpShape()[entry.index_];
-      dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
+      dt dtype = dtype_dl2dnnl(nodes_[entry.id_].GetOpDataType()[entry.index_]);
+      dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dtype);
 
       data_dims.push_back(data_shape);
       data_mds.push_back(data_md);
@@ -484,7 +509,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     
     for (auto entry : node.GetInputs()) {
       auto data_shape = nodes_[entry.id_].GetOpShape()[entry.index_];
-      dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dt::f32);
+      dt dtype = dtype_dl2dnnl(nodes_[entry.id_].GetOpDataType()[entry.index_]);
+      dnnl::memory::desc data_md = GenDNNLMemDescByShape(data_shape, dtype);
         data_mds.push_back(data_md);
         data_memories.push_back(BindDNNLMemory(entry, data_md));
       }
@@ -567,8 +593,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims dilation = {DH, DW};
 
     // Memory descriptions.
-    auto pool_src_md = dnnl::memory::desc(src_dims, dt::f32, src_df);
-    auto pool_dst_md = dnnl::memory::desc(dst_dims, dt::f32, tag::any);
+    dt dtype = dtype_dl2dnnl(nodes_[data_entry.id_].GetOpDataType()[data_entry.index_]);
+    auto pool_src_md = dnnl::memory::desc(src_dims, dtype, src_df);
+    auto pool_dst_md = dnnl::memory::desc(dst_dims, dtype, tag::any);
 
     // Pooling description.
     auto pool_desc = dnnl::pooling_forward::desc(
