@@ -83,12 +83,12 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
   void Run() override {
     // Fill in the input buffers.
     for (size_t i = 0; i < input_nodes_.size(); ++i) {
-      auto eid = EntryID(input_nodes_[i], 0);  
-      entry_out_mem_[eid].first.set_data_handle(data_entry_[eid]->data);
+      auto eid = EntryID(input_nodes_[i], 0);
+      SetBuffer(eid);
     }
     for (size_t i = 0; i < outputs_.size(); ++i) {
       auto eid = EntryID(outputs_[i]);
-      entry_out_mem_[eid].first.set_data_handle(data_entry_[eid]->data);
+      SetBuffer(eid);
     }
     // Invoke the engine through intepreting the stream.
     for (size_t i = 0; i < net_.size(); ++i) {
@@ -164,6 +164,40 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     entry_out_mem_[eid] = {mem, offset};
     return entry_out_mem_[eid].first;
+  }
+
+  void SetBuffer(uint32_t eid){
+    dnnl::memory& mem = entry_out_mem_[eid].first;
+    const size_t offset = entry_out_mem_[eid].second;
+    const DLTensor* tensor = data_entry_[eid];
+    if (tensor == nullptr || tensor->data == nullptr) {
+      LOG(FATAL) << "empty data entry" << std::endl;
+    }
+    size_t mem_bytes = mem.get_desc().get_size();
+    size_t tensor_bytes = GetDataSize(*tensor);
+    void* buffer = tensor->data;
+    if (mem_bytes == tensor_bytes) {
+      if (offset == 0) {
+        mem.set_data_handle(buffer);
+      } else {
+        LOG(FATAL) << "faild to fill a tensor with " << mem_bytes << " with " << tensor_bytes
+                   << " bytes buffer and offset=" << offset << std::endl;
+      }
+    } else if (mem_bytes > tensor_bytes) {
+      size_t offset_in_bytes = offset * ((tensor->dtype.bits + 7) / 8);
+      uint8_t* dst = static_cast<uint8_t*>(mem.get_data_handle());
+      if (offset_in_bytes + tensor_bytes <= mem_bytes) {
+        std::copy(reinterpret_cast<uint8_t*>(buffer),
+                  reinterpret_cast<uint8_t*>(buffer) + tensor_bytes,
+                  dst + offset_in_bytes);
+      } else {
+        LOG(FATAL) << "faild to fill a tensor with " << mem_bytes << " with " << tensor_bytes
+                   << " bytes buffer and offset=" << offset << std::endl;
+      }
+    }else{
+      LOG(FATAL) << "faild to fill a tensor with " << mem_bytes << " with " << tensor_bytes
+                 << " bytes" << std::endl;
+    }
   }
 
   dt dtype_dl2dnnl(DLDataType dltype) {
