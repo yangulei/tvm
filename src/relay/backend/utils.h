@@ -50,10 +50,6 @@ namespace tec {
 class TECompiler;
 }
 
-namespace transform {
-Pass InlinePrimitives();
-}
-
 namespace backend {
 using Pass = tvm::transform::Pass;
 
@@ -512,9 +508,9 @@ Map<Target, IRModule> TargetStrModuleMapToTargetModuleMap(
  * lowering back to the auto scheduler.
  * Op weights refer to the number of times each distinct op/workload appears in a given module.
  * It is called "use_count" in TECompiler.
- * \param TECompiler used in the Relay module lowering step.
+ * \param IRModule after lowering by LowerTEPass.
  */
-void UpdateAutoSchedulerOpWeights(tec::TECompiler compiler);
+void UpdateAutoSchedulerOpWeights(const IRModule& module);
 
 }  // namespace backend
 }  // namespace relay
