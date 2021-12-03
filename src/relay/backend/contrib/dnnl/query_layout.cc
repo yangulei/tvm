@@ -153,7 +153,33 @@ std::string md2fmt_tag_str(const dnnl::memory::desc *md) {
     return s;
 }
 
-std::string AutoQuery(int N,int IC,int KH,int KW,int OC,int SH,int SW,int PH_L,int PH_R,int PW_L,int PW_R,int OH,int OW, int G) {//int *shapes, struct StructFormat* res
+using dt = dnnl::memory::data_type;
+dt dtype_dl2dnnl(DLDataType dltype) {
+  dt dnnl_type = dt::undef;
+  if (dltype.code == DataType::TypeCode::kFloat) {
+    if (dltype.bits == 16) {
+      dnnl_type = dt::f16;
+    } else if (dltype.bits == 32) {
+      dnnl_type = dt::f32;
+    }
+  } else if (dltype.code == DataType::TypeCode::kBFloat && dltype.bits == 16) {
+    dnnl_type = dt::bf16;
+  } else if (dltype.code == DataType::TypeCode::kInt) {
+    if (dltype.bits == 8) {
+      dnnl_type = dt::s8;
+    } else if (dltype.bits == 32) {
+      dnnl_type = dt::s32;
+    }
+  } else if (dltype.code == DataType::TypeCode::kUInt && dltype.bits == 8) {
+    dnnl_type = dt::u8;
+  }
+  if (dnnl_type == dt::undef) {
+    LOG_ERROR << "unsupported datatype: code=" << dltype.code << ", bits=" << dltype.bits;
+  }
+  return dnnl_type;
+}
+
+std::string AutoQuery(int N,int IC,int KH,int KW,int OC,int SH,int SW,int PH_L,int PH_R,int PW_L,int PW_R,int OH,int OW, int G, std::string dtype) {//int *shapes, struct StructFormat* res
     dnnl::engine eng(dnnl::engine::kind::cpu, 0);
     dnnl::stream s(eng);
     using tag = dnnl::memory::format_tag;
@@ -175,10 +201,11 @@ std::string AutoQuery(int N,int IC,int KH,int KW,int OC,int SH,int SW,int PH_L,i
     dnnl::memory::dims conv_padding_l = {PH_L, PW_L};
     dnnl::memory::dims conv_padding_r = {PH_R, PW_R};
 
-    auto conv_src_md = dnnl::memory::desc({conv_src_tz}, dt::f32, tag::any);
-    auto conv_bias_md = dnnl::memory::desc({conv_bias_tz}, dt::f32, tag::any);
-    auto conv_weights_md = dnnl::memory::desc({conv_weights_tz}, dt::f32, tag::any);
-    auto conv_dst_md = dnnl::memory::desc({conv_dst_tz}, dt::f32, tag::any);
+    dt dnnl_dtype = dtype_dl2dnnl(tvm::runtime::String2DLDataType(dtype));
+    auto conv_src_md = dnnl::memory::desc({conv_src_tz}, dnnl_dtype, tag::any);
+    auto conv_bias_md = dnnl::memory::desc({conv_bias_tz}, dnnl_dtype, tag::any);
+    auto conv_weights_md = dnnl::memory::desc({conv_weights_tz}, dnnl_dtype, tag::any);
+    auto conv_dst_md = dnnl::memory::desc({conv_dst_tz}, dnnl_dtype, tag::any);
     //[Create convolution memory descriptors]
 
     auto conv_desc = dnnl::convolution_forward::desc(dnnl::prop_kind::forward_inference,
@@ -202,7 +229,7 @@ std::string AutoQuery(int N,int IC,int KH,int KW,int OC,int SH,int SW,int PH_L,i
 }
 
 TVM_REGISTER_GLOBAL("relay.ir.AutoQuery").set_body([](TVMArgs args, TVMRetValue* rv) {
-  *rv = AutoQuery(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13]);
+  *rv = AutoQuery(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13], args[14]);
 });
 
 }  // namespace contrib

@@ -19,7 +19,7 @@
 
 from . import _ffi_api
 
-def AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW,G):
+def AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW,G,dtype):
     """Get absolute value of the input element-wise.
 
     Parameters
@@ -35,4 +35,4 @@ def AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW,G):
     y : PrimExpr
         The result.
     """
-    return _ffi_api.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW,G)  # type: ignore
+    return _ffi_api.AutoQuery(N,IC,KH,KW,OC,SH,SW,PH_L,PH_R,PW_L,PW_R,OH,OW,G,dtype)  # type: ignore

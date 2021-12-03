@@ -274,6 +274,7 @@ def alter_conv2d(attrs, inputs, tinfos, out_type):
     PH_L, PW_L, PH_R, PW_R = attrs.get_int_tuple("padding")
     SH, SW = attrs.get_int_tuple("strides")
     dilation = attrs.get_int_tuple("dilation")
+    dtype = data.type_annotation.dtype
     G = int(attrs.groups)
     new_attrs = dict(attrs)
 
