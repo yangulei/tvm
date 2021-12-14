@@ -246,6 +246,12 @@ conda/pkg
 .dgl
 .caffe2
 
+<<<<<<< HEAD
 # logs
 *.txt
 *.xlsx
+
+# Local docs build
+_docs/
+jvm/target
+.config/configstore/
