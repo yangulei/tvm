@@ -52,7 +52,7 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
           if (need_sep) {
             p->stream << ", ";
           }
-          p->stream << "target='" << node->target << "'";
+          p->stream << "target=" << node->target->ToDebugString();
           need_sep = true;
         }
         if (!node->memory_scope.empty()) {
@@ -68,7 +68,7 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 SEScope::SEScope(DLDeviceType device_type, int virtual_device_id, Target target,
                  MemoryScope memory_scope) {
   ICHECK(!target.defined() || device_type == target->kind->device_type)
-      << "target '" << target << "' has device type " << target->kind->device_type
+      << "target " << target->ToDebugString() << " has device type " << target->kind->device_type
       << " but scope has device type " << device_type;
   auto node = make_object<SEScopeNode>();
   node->device_type_int = device_type;
@@ -169,11 +169,9 @@ SEScope SEScopeCache::Make(DLDeviceType device_type, int virtual_device_id, Targ
   SEScope prototype(device_type, virtual_device_id, std::move(target), std::move(memory_scope));
   auto itr = cache_.find(prototype);
   if (itr == cache_.end()) {
-    VLOG(1) << "added new scope " << prototype;
     cache_.emplace(prototype);
     return prototype;
   } else {
-    VLOG(1) << "reusing '" << *itr << "' for '" << prototype << "'";
     ICHECK_EQ(prototype->target.defined(), (*itr)->target.defined());
     if (prototype->target.defined()) {
       ICHECK_EQ(prototype->target->host.defined(), (*itr)->target->host.defined());
