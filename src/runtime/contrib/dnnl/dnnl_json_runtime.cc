@@ -616,6 +616,10 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
           Pooling(nid, dnnl::algorithm::pooling_max);
         } else if ("nn.avg_pool2d" == op_name) {
           Pooling(nid, dnnl::algorithm::pooling_avg);
+        } else if ("nn.global_max_pool2d" == op_name) {
+          Pooling(nid, dnnl::algorithm::pooling_max, true);
+        } else if ("nn.global_avg_pool2d" == op_name) {
+          Pooling(nid, dnnl::algorithm::pooling_avg, true);
         } else {
           LOG(FATAL) << "Unsupported op: " << op_name;
         }
@@ -1054,31 +1058,31 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     args.insert({DNNL_ARG_DST, out_memory});
     net_args_.push_back(args);
   }
-  
-  void Pooling(const size_t& nid, dnnl::algorithm algo) {
+
+  void Pooling(const size_t& nid, dnnl::algorithm algo, const bool isGlobal = false) {
     auto node = nodes_[nid];
 
     // Setup attributes.
+    using VecStr = std::vector<std::string>;
     auto data_entry = node.GetInputs()[0];
     dnnl::memory::dims input_shape = nodes_[data_entry.id_].GetOpShape()[data_entry.index_];
-    dnnl::memory::dim pool_size0 = std::stoi(node.GetAttr<std::vector<std::string>>("pool_size")[0]);
-    dnnl::memory::dim pool_size1 = std::stoi(node.GetAttr<std::vector<std::string>>("pool_size")[1]);
-    std::vector<std::string> str_strides = node.GetAttr<std::vector<std::string>>("strides");
-    std::vector<std::string> str_padding = node.GetAttr<std::vector<std::string>>("padding");
-    std::vector<std::string> ceil_mode = node.GetAttr<std::vector<std::string>>("ceil_mode");
-    dnnl::memory::dim dilation0 = std::stoi(node.GetAttr<std::vector<std::string>>("dilation")[0]);
-    dnnl::memory::dim dilation1 = std::stoi(node.GetAttr<std::vector<std::string>>("dilation")[1]);
-    auto src_df = layout2tag(node.GetAttr<std::vector<std::string>>("layout")[0]);
+    dnnl::memory::dim pool_size0 = isGlobal ? 0 : std::stoi(node.GetAttr<VecStr>("pool_size")[0]);
+    dnnl::memory::dim pool_size1 = isGlobal ? 0 : std::stoi(node.GetAttr<VecStr>("pool_size")[1]);
+    VecStr str_strides = isGlobal ? VecStr(2, "1") : node.GetAttr<VecStr>("strides");
+    VecStr str_padding = isGlobal ? VecStr(4, "0") : node.GetAttr<VecStr>("padding");
+    VecStr ceil_mode = isGlobal ? VecStr(1, "false") : node.GetAttr<VecStr>("ceil_mode");
+    dnnl::memory::dim dilation0 = isGlobal ? 0 : std::stoi(node.GetAttr<VecStr>("dilation")[0]);
+    dnnl::memory::dim dilation1 = isGlobal ? 0 : std::stoi(node.GetAttr<VecStr>("dilation")[1]);
+    auto src_df = layout2tag(node.GetAttr<VecStr>("layout")[0]);
 
     // Attributes related to AvgPool
-    if (algo==dnnl::algorithm::pooling_avg) {
-        int int_countpad = std::stoi(node.GetAttr<std::vector<std::string>>("count_include_pad")[0]); //note
-        bool count_include_pad = int_countpad != 0 ? true : false;
-        algo = count_include_pad ?
-          dnnl::algorithm::pooling_avg_include_padding :
-          dnnl::algorithm::pooling_avg_exclude_padding ;
+    if (!isGlobal && algo == dnnl::algorithm::pooling_avg) {
+      int int_countpad = std::stoi(node.GetAttr<VecStr>("count_include_pad")[0]);
+      bool count_include_pad = int_countpad != 0 ? true : false;
+      algo = count_include_pad ? dnnl::algorithm::pooling_avg_include_padding
+                               : dnnl::algorithm::pooling_avg_exclude_padding;
     }
-    
+
     //assume the default layout as NHWC
     dnnl::memory::dim N = input_shape[0],
       IH = input_shape[1],
@@ -1095,13 +1099,18 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       DH = dilation0,
       DW = dilation1;
       
-    if (node.GetAttr<std::vector<std::string>>("layout")[0].substr(0,4)=="NCHW") {
+    if (node.GetAttr<VecStr>("layout")[0].substr(0,4)=="NCHW") {
         IC = input_shape[1];
         IH = input_shape[2];
         IW = input_shape[3];
         if (input_shape.size()==5) {
           IC = IC * input_shape[input_shape.size()-1];
         }
+    }
+
+    if (isGlobal) {
+      KH = IH;
+      KW = IW;
     }
 
     dnnl::memory::dim OH = (IH - KH + PH_L + PH_R) / SH + 1,
