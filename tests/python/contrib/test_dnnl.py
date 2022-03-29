@@ -109,7 +109,10 @@ def partition_for_dnnl(mod, params=None, alter_layout=True):
 
 def vmobj_to_list(o):
     if isinstance(o, tvm.nd.NDArray):
-        return [o.numpy()]
+        o_np = o.numpy()
+        if o_np.dtype == np.uint16:
+            o_np = np.left_shift(o_np.astype("uint32"), 16).view("<f4")
+        return [o_np]
     elif isinstance(o, tvm.runtime.container.ADT) or isinstance(o, list):
         return [vmobj_to_list(f) for f in o]
     else:
@@ -137,13 +140,17 @@ def run_and_verify(mod, input, params, target, run_module, subgraph_num=None):
     dev = tvm.cpu()
     result_dict = dict()
     for mode in ["graph", "vm"]:
-        for use_dnnl, alter_layout in [(False, False), (True, False), (True, True)]:
-            result_key = mode + ("_dnnl" if use_dnnl else "") + ("_layout" if alter_layout else "")
+        for use_dnnl, alter_layout, use_bf16 in [(False, False, False), (True, False, False),
+            (True, False, True), (True, True, False), (True, True, True)]:
+            result_key = mode + ("_dnnl" if use_dnnl else "") + (
+                "_layout" if alter_layout else "")+("_bf16" if use_bf16 else "_fp32")
+            processed_mod = mod
+            if use_bf16:
+                processed_mod=relay.transform.ToMixedPrecision('bfloat16')(processed_mod)
             if use_dnnl:
-                processed_mod = partition_for_dnnl(mod, params, alter_layout)
-                check_dnnl_used(processed_mod, subgraph_num)
-            else:
-                processed_mod = mod
+                processed_mod = partition_for_dnnl(processed_mod, params, alter_layout)
+                check_dnnl_used(processed_mod)
+
             with tvm.transform.PassContext(opt_level=3):
                 func = relay.create_executor(
                     mode, mod=processed_mod, device=dev, target=target
