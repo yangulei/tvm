@@ -601,7 +601,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     dnnl::memory::dims out_dims = out_shape;
 
     // Memory descriptions.
-    dt dtype = dtype_dl2dnnl(nodes_[data_entry.id_].GetOpDataType()[data_entry.index_]);
+    auto dl_dtype = nodes_[data_entry.id_].GetOpDataType()[data_entry.index_];
+    dt dtype = dtype_dl2dnnl(dl_dtype);
     auto data_md = dnnl::memory::desc({data_dims, dtype, tag::nc});
     auto weight_md = dnnl::memory::desc({weight_dims, dtype, tag::nc});
     auto bias_md = dnnl::memory::desc({bias_dims, dtype, tag::x});
@@ -628,7 +629,7 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       BindDNNLMemory(bias_entry, bias_memory);
     } else {
       float bias[OC] = {0};
-      write_to_dnnl_memory(bias, bias_memory, OC * sizeof(float));
+      write_to_dnnl_memory(bias, bias_memory, OC * ((dl_dtype.bits + 7) / 8));
     }
 
     // Output memory.
