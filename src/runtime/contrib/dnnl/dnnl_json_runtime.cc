@@ -923,6 +923,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
         kernel_layout.replace(kernel_layout.find("OI"), 2, "IO");
       }
     }
+    weights_dims_[0] = channels;
+    weights_dims_[1] = src_dims[1];
     dnnl::memory::dims bias_dims = {channels};
     dnnl::memory::dims strides_dims = TransformStr2Dims(str_strides);
     dnnl::memory::dims dilates_dims = TransformStr2Dims(str_dilates, true);
