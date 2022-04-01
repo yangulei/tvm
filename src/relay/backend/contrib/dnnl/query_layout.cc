@@ -218,8 +218,7 @@ dt dtype_dl2dnnl(DLDataType dltype) {
 std::string get_optimal_layout_for_conv(std::string data_layout, std::string kernel_layout,
                                         std::string weight_shape, std::string out_shape,
                                         std::string paddings, std::string strides,
-                                        std::string dilates, std::string G,
-                                        std::string dtype) {
+                                        std::string dilates, std::string G, std::string dtype) {
   check_layout(std::regex_match(data_layout, std::regex("NC(D?)(H?)W")), true);
   check_layout(std::regex_match(kernel_layout, std::regex("(G?)OI(D?)(H?)W")), true);
   check_shapes({weight_shape, out_shape, paddings, strides, dilates, G});
