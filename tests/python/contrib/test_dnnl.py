@@ -140,13 +140,22 @@ def run_and_verify(mod, input, params, target, run_module, subgraph_num=None):
     dev = tvm.cpu()
     result_dict = dict()
     for mode in ["graph", "vm"]:
-        for use_dnnl, alter_layout, use_bf16 in [(False, False, False), (True, False, False),
-            (True, False, True), (True, True, False), (True, True, True)]:
-            result_key = mode + ("_dnnl" if use_dnnl else "") + (
-                "_layout" if alter_layout else "")+("_bf16" if use_bf16 else "_fp32")
+        for use_dnnl, alter_layout, use_bf16 in [
+            (False, False, False),
+            (True, False, False),
+            (True, False, True),
+            (True, True, False),
+            (True, True, True),
+        ]:
+            result_key = (
+                mode
+                + ("_dnnl" if use_dnnl else "")
+                + ("_layout" if alter_layout else "")
+                + ("_bf16" if use_bf16 else "_fp32")
+            )
             processed_mod = mod
             if use_bf16:
-                processed_mod=relay.transform.ToMixedPrecision('bfloat16')(processed_mod)
+                processed_mod = relay.transform.ToMixedPrecision("bfloat16")(processed_mod)
                 if tvm.ir.structural_equal(processed_mod, mod):
                     print("can not convert to bfloat16, skipping...")
                     continue
@@ -597,7 +606,7 @@ def test_elementwise(run_module, dtype="float32"):
         relay.log,
         relay.sqrt,
         # relay.round,
-        lambda x:relay.logsumexp(x, keepdims=True),   # to prevent numpy error about 0d array
+        lambda x: relay.logsumexp(x, keepdims=True),  # to prevent numpy error about 0d array
         relay.nn.relu,
         relay.tanh,
         relay.sigmoid,
