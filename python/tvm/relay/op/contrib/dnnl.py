@@ -295,6 +295,7 @@ def get_shape(tensor):
         return tensor.checked_type.shape
     raise TypeError("Unsupport data type: %s" % type(tensor))
 
+
 def get_dtype(tensor):
     """Get tensor's shape."""
     if isinstance(tensor, relay.expr.Var):
@@ -308,6 +309,7 @@ def get_dtype(tensor):
     if isinstance(tensor, relay.expr.Call):
         return tensor.checked_type.dtype
     raise TypeError("Unsupport data type: %s" % type(tensor))
+
 
 def tag2layout(input_data, is_weight=False, conv_type="Conv1D"):
     """Transfer layout, denoted with `a, b, c, d, e`,
