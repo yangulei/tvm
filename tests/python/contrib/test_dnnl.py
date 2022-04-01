@@ -974,14 +974,14 @@ def test_prune_dnnl_subgraph(run_module):
     """In this test, OP "add" should be offloaded from dnnl codegen."""
 
     def get_graph():
-        x1 = relay.var("x1", shape=(1, 64, 56, 56))
-        x2 = relay.var("x2", shape=(1, 64, 56, 56))
-        bias = relay.var("bias", shape=(64,))
-        weight = relay.var("weight", shape=(64, 64, 3, 3))
+        x1 = relay.var("x1", shape=(1, 32, 56, 56))
+        x2 = relay.var("x2", shape=(1, 32, 56, 56))
+        bias = relay.var("bias", shape=(32,))
+        weight = relay.var("weight", shape=(32, 32, 3, 3))
         y = relay.nn.conv2d(
             x1,
             weight,
-            channels=64,
+            channels=32,
             kernel_size=(3, 3),
             padding=(1, 1),
         )
@@ -990,10 +990,10 @@ def test_prune_dnnl_subgraph(run_module):
         y = relay.nn.global_max_pool2d(y)
         y = relay.add(y, x2)
         dic = {
-            "x1": (1, 64, 56, 56),
-            "x2": (1, 64, 56, 56),
-            "weight": (64, 64, 3, 3),
-            "bias": (64,),
+            "x1": (1, 32, 56, 56),
+            "x2": (1, 32, 56, 56),
+            "weight": (32, 32, 3, 3),
+            "bias": (32,),
         }
         param_lst = ["weight", "bias"]
         out = tvm.IRModule.from_expr(y)
