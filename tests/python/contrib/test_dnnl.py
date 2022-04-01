@@ -605,8 +605,6 @@ def test_elementwise(run_module, dtype="float32"):
         relay.exp,
         relay.log,
         relay.sqrt,
-        # relay.round,
-        lambda x: relay.logsumexp(x, keepdims=True),  # to prevent numpy error about 0d array
         relay.nn.relu,
         relay.tanh,
         relay.sigmoid,
@@ -1006,5 +1004,5 @@ def test_prune_dnnl_subgraph(run_module):
 
 if __name__ == "__main__":
     import sys
-
+    
     sys.exit(pytest.main([__file__] + sys.argv[1:]))
