@@ -273,7 +273,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
             std::regex_match(op_name, conv_transpose_pat)) {
           Deconvolution(nid);
         } else if (std::regex_match(op_name, conv_pat)) {
-          Convolution(nid);
+          // Convolution(nid);
+          ConvolutionYang(nid);
         } else if (std::regex_match(op_name, dense_pat)) {
           Dense(nid);
         } else if ("nn.batch_norm" == op_name) {
@@ -322,6 +323,179 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     entry_out_mem_[eid] = {mem, offset};
     return entry_out_mem_[eid].first;
+  }
+
+  std::unordered_map<std::string, dnnl::algorithm> dnnl_eltwise_ops = {
+      {"relu", dnnl::algorithm::eltwise_relu},
+      {"tanh", dnnl::algorithm::eltwise_tanh},
+      {"sigmoid", dnnl::algorithm::eltwise_logsigmoid}};
+
+  std::unordered_map<std::string, dnnl::algorithm> dnnl_binary_ops = {
+      {"sum", dnnl::algorithm::binary_add}};
+
+  dnnl::memory::dims get_entry_dims(const JSONGraphNodeEntry& entry){
+    return nodes_[entry.id_].GetOpShape()[entry.index_];
+  }
+
+  using vec_string = std::vector<std::string>;
+  void ConvolutionYang(const size_t& nid) {
+    auto node = nodes_[nid];
+    std::string partition_name = node.GetOpName();
+    std::string fused_op_name = partition_name.substr(std::string("dnnl.").length());
+    std::vector<std::string> op_names;
+    {
+      std::istringstream ss(fused_op_name);
+      std::string s;
+      while (getline(ss, s, '_')) {
+        op_names.push_back(s);
+      }
+    }
+
+    bool has_bias = op_names[1] == "bias";
+
+    int input_index = 0;
+    JSONGraphNodeEntry dst_entry(nid, 0);
+    JSONGraphNodeEntry src_entry = node.GetInputs()[input_index++];
+    JSONGraphNodeEntry weights_entry = node.GetInputs()[input_index++];
+    JSONGraphNodeEntry bias_entry =
+        has_bias ? node.GetInputs()[input_index++] : JSONGraphNodeEntry();
+
+    dnnl::memory::dims dst_dims = get_entry_dims(dst_entry);
+    dnnl::memory::dim channels = node.GetAttr<vec_string>("channels")[0] != ""
+                                     ? std::stoi(node.GetAttr<vec_string>("channels")[0])
+                                     : dst_dims[1];
+    dnnl::memory::dims src_dims = get_entry_dims(src_entry);
+    dnnl::memory::dims weights_dims = get_entry_dims(weights_entry);
+    dnnl::memory::dims bias_dims = {channels};
+    vec_string str_strides = node.GetAttr<vec_string>("strides");
+    vec_string str_dilates = node.GetAttr<vec_string>("dilation");
+    vec_string str_padding = node.GetAttr<vec_string>("padding");
+    vec_string str_padding_l(str_padding.begin(), str_padding.begin() + str_padding.size() / 2);
+    vec_string str_padding_r(str_padding.end() - str_padding.size() / 2, str_padding.end());
+    dnnl::memory::dim groups = std::stoi(node.GetAttr<vec_string>("groups")[0]);
+    std::string src_layout = node.GetAttr<vec_string>("data_layout")[0];
+    std::string weights_layout = node.GetAttr<vec_string>("kernel_layout")[0];
+
+    // Check layout.
+    if (layout_dict.find(src_layout) == layout_dict.end()) {
+      LOG(FATAL) << "Unsupported src layout '" << src_layout << "' for " << op_names[0];
+    }
+
+    if (layout_dict.find(weights_layout) == layout_dict.end()) {
+      layout_dict.insert({weights_layout, tag::any});
+      LOG(WARNING) << "Unregistered weights layout '" << weights_layout << "' for " << op_names[0]
+                   << ", using tag::any instead.";
+    }
+
+    // Memory shapes.
+    src_dims = TransDims2Plain(src_dims, src_layout);
+    dnnl::memory::dims weights_dims_ = TransDims2Plain(weights_dims, weights_layout);
+    dnnl::memory::dims strides_dims = TransformStr2Dims(str_strides);
+    dnnl::memory::dims dilates_dims = TransformStr2Dims(str_dilates, true);
+    dnnl::memory::dims padding_dims_l = TransformStr2Dims(str_padding_l);
+    dnnl::memory::dims padding_dims_r = TransformStr2Dims(str_padding_r);
+
+    dst_dims = src_dims;
+    dst_dims[1] = channels;
+    weights_dims_[0] = channels;
+    for (size_t i = 2; i < src_dims.size(); i++) {
+      dnnl::memory::dim K = weights_dims_[i];
+      dnnl::memory::dim S = strides_dims[i - 2];
+      dnnl::memory::dim D = dilates_dims[i - 2];
+      dnnl::memory::dim PL = padding_dims_l[i - 2];
+      dnnl::memory::dim PR = padding_dims_r[i - 2];
+      dnnl::memory::dim DK = 1 + (K - 1) * (D + 1);
+      dst_dims[i] = (src_dims[i] - DK + PL + PR) / S + 1;
+    }
+
+    if (groups > 1) {
+      weights_dims = {groups, channels / groups, src_dims[1] / groups};
+      weights_dims.insert(weights_dims.end(), weights_dims_.begin() + 2, weights_dims_.end());
+      if (weights_layout == "OIHW") {
+        weights_layout.insert(0, "G");
+      }
+    }else{
+      weights_dims = weights_dims_;
+    }
+
+    // Memory descriptors
+    dnnl::memory::desc src_md(src_dims, dt::f32, layout_dict[src_layout]);
+    dnnl::memory::desc weights_md(weights_dims, dt::f32, layout_dict[weights_layout]);
+    dnnl::memory::desc bias_md(bias_dims, dt::f32, tag::any);
+    dnnl::memory::desc dst_md(dst_dims, dt::f32, tag::any);
+
+    // Conv descriptor
+    auto conv_desc =
+        has_bias
+            ? dnnl::convolution_forward::desc(dnnl::prop_kind::forward_inference,
+                                              dnnl::algorithm::convolution_direct, src_md,
+                                              weights_md, bias_md, dst_md, strides_dims,
+                                              dilates_dims, padding_dims_l, padding_dims_r)
+            : dnnl::convolution_forward::desc(
+                  dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct, src_md,
+                  weights_md, dst_md, strides_dims, dilates_dims, padding_dims_l, padding_dims_r);
+    
+    dnnl::post_ops post_ops;
+    std::unordered_map<int, JSONGraphNodeEntry> post_op_entries;
+    size_t post_op_start = has_bias ? 2 : 1;
+    for (size_t op_index = post_op_start; op_index < op_names.size(); op_index++) {
+      const int post_op_pos = op_index - post_op_start;
+      const std::string& op_name = op_names[op_index];
+      if (dnnl_eltwise_ops.find(op_name) != dnnl_eltwise_ops.end()) {
+        post_ops.append_eltwise(1.f, dnnl_eltwise_ops[op_name], 0.f, 0.f);
+      } else if (dnnl_binary_ops.find(op_name) != dnnl_binary_ops.end()) {
+        JSONGraphNodeEntry binary_entry = node.GetInputs()[input_index++];
+        // dnnl::memory::dims binary_dims = get_entry_dims(binary_entry); // ToDo: support blocked format
+        dnnl::memory::dims binary_dims = dst_dims;  // use dst dims to avoid getting blocked dims
+        dnnl::memory::desc binary_md(binary_dims, dt::f32, tag::any);
+        post_ops.append_binary(dnnl_binary_ops[op_name], binary_md);
+        post_op_entries.insert({post_op_pos, binary_entry});
+      } else {
+        LOG(FATAL) << "unsupported op: '" << op_name << "' in '" << partition_name << "'";
+      }
+    }
+
+    dnnl::primitive_attr attr;
+    attr.set_post_ops(post_ops);
+
+    // network
+    dnnl::convolution_forward::primitive_desc conv_prim_desc(conv_desc, attr, engine_);
+    dnnl::convolution_forward conv_fwd(conv_prim_desc);
+    net_.push_back(conv_fwd);
+
+    // network args
+    std::unordered_map<int, dnnl::memory> args;
+
+    // args for conv
+    auto dst_memory = BindDNNLMemory(dst_entry, conv_prim_desc.dst_desc());
+    args.insert({DNNL_ARG_DST, dst_memory});
+    auto src_memory = BindDNNLMemory(src_entry, src_md);
+    args.insert({DNNL_ARG_SRC, src_memory});
+    auto weights_memory = BindDNNLMemory(weights_entry, conv_prim_desc.weights_desc());
+    args.insert({DNNL_ARG_WEIGHTS, weights_memory});
+    if (has_bias) {
+      auto bias_memory = BindDNNLMemory(bias_entry, conv_prim_desc.bias_desc());
+      args.insert({DNNL_ARG_BIAS, bias_memory});
+    }
+
+    // args for binary post op
+    for (const auto& item : post_op_entries) {
+      int op_index = item.first;
+      JSONGraphNodeEntry src1_entry = item.second;
+      dnnl::algorithm alg;
+      dnnl::memory::desc src1_desc;
+      if (post_ops.kind(op_index) == dnnl::primitive::kind::binary) {
+        conv_prim_desc.get_primitive_attr().get_post_ops().get_params_binary(op_index, alg, src1_desc);
+        // auto src1_memory = BindDNNLMemory(src1_entry, src1_desc);  // ToDo: check why get format::tag::any
+        dnnl::memory::desc binary_md(src1_desc.dims(), src1_desc.data_type(), tag::nChw8c);
+        auto src1_memory = BindDNNLMemory(src1_entry, binary_md);
+        args.insert({DNNL_ARG_ATTR_MULTIPLE_POST_OP(op_index) | DNNL_ARG_SRC_1, src1_memory});
+      } else {
+        LOG(FATAL) << "unsupported post op kind: " << int(post_ops.kind(op_index));
+      }
+    }
+
+    net_args_.push_back(args);
   }
 
   void Convolution(const size_t& nid) {
