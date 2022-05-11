@@ -487,7 +487,9 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       if (post_ops.kind(op_index) == dnnl::primitive::kind::binary) {
         conv_prim_desc.get_primitive_attr().get_post_ops().get_params_binary(op_index, alg, src1_desc);
         // auto src1_memory = BindDNNLMemory(src1_entry, src1_desc);  // ToDo: check why get format::tag::any
-        dnnl::memory::desc binary_md(src1_desc.dims(), src1_desc.data_type(), tag::nChw8c);
+        // dnnl::memory::desc binary_md(src1_desc.dims(), src1_desc.data_type(), tag::nChw8c);
+        dnnl::memory::dims binary_dims = get_entry_dims(src1_entry);
+        dnnl::memory::desc binary_md = GenDNNLMemDescByShape(binary_dims, dt::f32);
         auto src1_memory = BindDNNLMemory(src1_entry, binary_md);
         args.insert({DNNL_ARG_ATTR_MULTIPLE_POST_OP(op_index) | DNNL_ARG_SRC_1, src1_memory});
       } else {
