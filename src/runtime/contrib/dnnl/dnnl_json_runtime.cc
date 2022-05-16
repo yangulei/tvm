@@ -460,6 +460,17 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
 
     // network
     dnnl::convolution_forward::primitive_desc conv_prim_desc(conv_desc, attr, engine_);
+
+    if ((src_md.data.format_kind != dnnl_format_kind_t::dnnl_format_kind_any) &&
+        (src_md != conv_prim_desc.src_desc())) {
+      LOG(FATAL) << "src desc mismatch.";
+    }
+
+    if ((weights_md.data.format_kind != dnnl_format_kind_t::dnnl_format_kind_any) &&
+        (weights_md != conv_prim_desc.weights_desc())) {
+      LOG(FATAL) << "weights desc mismatch.";
+    }
+
     dnnl::convolution_forward conv_fwd(conv_prim_desc);
     net_.push_back(conv_fwd);
 
@@ -487,9 +498,8 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       if (post_ops.kind(op_index) == dnnl::primitive::kind::binary) {
         conv_prim_desc.get_primitive_attr().get_post_ops().get_params_binary(op_index, alg, src1_desc);
         // auto src1_memory = BindDNNLMemory(src1_entry, src1_desc);  // ToDo: check why get format::tag::any
-        // dnnl::memory::desc binary_md(src1_desc.dims(), src1_desc.data_type(), tag::nChw8c);
-        dnnl::memory::dims binary_dims = get_entry_dims(src1_entry);
-        dnnl::memory::desc binary_md = GenDNNLMemDescByShape(binary_dims, dt::f32);
+        // dnnl::memory::desc binary_md(src1_desc.dims(), src1_desc.data_type(), tag::nhwc);
+        dnnl::memory::desc binary_md = GenDNNLMemDescByShape(get_entry_dims(src1_entry), dt::f32);
         auto src1_memory = BindDNNLMemory(src1_entry, binary_md);
         args.insert({DNNL_ARG_ATTR_MULTIPLE_POST_OP(op_index) | DNNL_ARG_SRC_1, src1_memory});
       } else {
