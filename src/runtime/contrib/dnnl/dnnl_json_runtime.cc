@@ -276,6 +276,18 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
       wgh_tr = wgh_tr.Crop(wgh_croped_dims, zero_offset);
     }
 
+    try
+    {
+      auto conv_desc_try = dnnl::convolution_forward::desc(
+        dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
+        src_tr.LayoutAny().desc(), wgh_tr.LayoutAny().desc(), bias_tr.LayoutAny().desc(),
+        dst_tr.LayoutAny().desc(), strides, dilates, padding_l, padding_r);
+    }
+    catch(const std::exception& e)
+    {
+      std::cerr << e.what() << '\n';
+    }
+    
     // Conv description.
     auto conv_desc = dnnl::convolution_forward::desc(
         dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
@@ -349,6 +361,18 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     // Assumption that bias is correct and can be squeezed to 1D
     bias_tr = bias_tr.Reshape({dst_tr.dims()[1]});
 
+    try
+    {
+      auto deconv_desc_try = dnnl::deconvolution_forward::desc(
+        dnnl::prop_kind::forward_inference, dnnl::algorithm::deconvolution_direct,
+        src_tr.LayoutAny().desc(), wgh_tr.LayoutAny().desc(), bias_tr.LayoutAny().desc(),
+        dst_tr.LayoutAny().desc(), strides, dilates, padding_l, padding_r);
+    }
+    catch(const std::exception& e)
+    {
+      std::cerr << e.what() << '\n';
+    }
+    
     // Conv description.
     auto deconv_desc = dnnl::deconvolution_forward::desc(
         dnnl::prop_kind::forward_inference, dnnl::algorithm::deconvolution_direct,
