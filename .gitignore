@@ -11,6 +11,7 @@ __pycache__/
 .Python
 env/
 build/
+build*
 build_debug/
 build_release/
 develop-eggs/
