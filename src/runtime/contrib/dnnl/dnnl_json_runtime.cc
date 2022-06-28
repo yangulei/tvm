@@ -75,34 +75,26 @@ class DNNLJSONRuntime : public JSONRuntimeBase {
     // Invoke the engine through intepreting the stream.
     for (size_t i = 0; i < net_.size(); ++i) {
       const auto& prim = net_.at(i);
+      
       const auto& mem_args = net_args_.at(i);
+            static const std::unordered_map<dnnl::primitive::kind, std::string> prim_name{
+          {dnnl::primitive::kind::reorder, "reorder"},
+          {dnnl::primitive::kind::convolution, "conv"},
+          {dnnl::primitive::kind::deconvolution, "deconv"},
+          {dnnl::primitive::kind::inner_product, "Dense"},
+          {dnnl::primitive::kind::pooling_v2, "pool_v2"}};
       const auto prim_kind = prim.get_kind();
-      if (prim.get_kind() == dnnl::primitive::kind::reorder) {
-        std::cout << "executing reorder primitiv ===============================" << std::endl;
-        for (const auto& arg : mem_args) {
-          std::cout << "address for arg #." << arg.first << ": " << arg.second.get_data_handle()
-                    << std::endl;
-        }
-      } else if (prim_kind == dnnl::primitive::kind::convolution) {
-        std::cout << "executing conv primitiv ===============================" << std::endl;
-        for (const auto& arg : mem_args) {
-          std::cout << "address for arg #." << arg.first << ": " << arg.second.get_data_handle()
-                    << std::endl;
-        }
-      } else if (prim_kind == dnnl::primitive::kind::inner_product) {
-        std::cout << "executing dense primitiv ===============================" << std::endl;
-        for (const auto& arg : mem_args) {
-          std::cout << "address for arg #." << arg.first << ": " << arg.second.get_data_handle()
-                    << std::endl;
-        }
-      } else if (prim_kind == dnnl::primitive::kind::pooling_v2) {
-        std::cout << "executing pool_v2 primitiv ===============================" << std::endl;
-        for (const auto& arg : mem_args) {
-          std::cout << "address for arg #." << arg.first << ": " << arg.second.get_data_handle()
-                    << std::endl;
-        }
+      if (prim_name.find(prim_kind) != prim_name.end()) {
+        std::cout << "executing " << prim_name.at(prim_kind)
+                  << " primitiv ===============================" << std::endl;
       } else {
         std::cout << "executing unknown primitiv ===============================" << std::endl;
+      }
+      std::map<int, dnnl::memory> args;
+      for (const auto& kvp : mem_args) args[kvp.first] = kvp.second;
+      for (const auto& arg : args) {
+        std::cout << "address for arg #." << arg.first << ": " << arg.second.get_data_handle()
+                  << std::endl;
       }
 
       net_.at(i).execute(stream_, net_args_.at(i));
