@@ -257,7 +257,12 @@ def benchmark(network, batch_size, warmup=20, repeat=5, steps=20, target="llvm",
 
     print("building fp32-byoc lib ...")
     with tvm.transform.PassContext(opt_level=3):
+        mod_fp32_byoc = byoc_seq(mod_fp32)
+        with open('mod_{}_fp32-byoc.swift'.format(network), 'w') as fout:
+            fout.write(mod_fp32_byoc.astext(show_meta_data=False))
         json_built, lib_built, params_built = relay.build(byoc_seq(mod_fp32), target=target, params=params)
+    with open('mod_{}_fp32-byoc_built.swift'.format(network), 'w') as fout:
+        fout.write(json_built)
     print("running fp32-byoc module ...")
     module_runtime = graph_executor.create(json_built, lib_built, dev)
     module_runtime.set_input("data", input_data, **params_built)
@@ -280,7 +285,12 @@ def benchmark(network, batch_size, warmup=20, repeat=5, steps=20, target="llvm",
 
     print("building bf16-byoc lib ...")
     with tvm.transform.PassContext(opt_level=3):
+        mod_bf16_byoc = byoc_seq(mod_fp32)
+        with open('mod_{}_bf16-byoc.swift'.format(network), 'w') as fout:
+            fout.write(mod_bf16_byoc.astext(show_meta_data=False))
         json_built, lib_built, params_built = relay.build(byoc_seq(mod_bf16), target=target, params=params)
+    with open('mod_{}_bf16-byoc_built.swift'.format(network), 'w') as fout:
+        fout.write(json_built)
     print("running bf16-byoc module ...")
     module_runtime = graph_executor.create(json_built, lib_built, dev)
     module_runtime.set_input("data", input_data, **params_built)
